@@ -95,4 +95,78 @@ Send("a")
 
 **Иллюстрация 2-3.** *Перехват вызовов WinAPI с помощью API Monitor*
 
+Мы узнали достаточно, чтобы симулировать нажатие клавиши "a" напрямую через WinAPI вызовы. Удалим третью строчку скрипта `Send.au3` и заменим её новым блоком кода. При этом оставим первые два вызова `WinGetHandle` и `WinActivate` без изменений.
+
+Блок кода 2-2 демонстрирует измененный скрипт.
+
+**Блок кода 2-2.** *Скрипт `SendInput.au3`*
+```AutoIt
+$hWnd = WinGetHandle("[CLASS:Notepad]")
+WinActivate($hWnd)
+
+Const $KEYEVENTF_UNICODE = 4
+Const $INPUT_KEYBOARD = 1
+Const $iInputSize = 28
+
+Const $tagKEYBDINPUT = _
+    'word wVk;' & _
+    'word wScan;' & _
+    'dword dwFlags;' & _
+    'dword time;' & _
+    'ulong_ptr dwExtraInfo'
+
+Const $tagINPUT = _
+    'dword type;' & _
+    $tagKEYBDINPUT & _
+    ';dword pad;'
+
+$tINPUTs = DllStructCreate($tagINPUT)
+$pINPUTs = DllStructGetPtr($tINPUTs)
+$iINPUTs = 1
+$Key = AscW('a')
+
+DllStructSetData($tINPUTs, 1, $INPUT_KEYBOARD)
+DllStructSetData($tINPUTs, 3, $Key)
+DllStructSetData($tINPUTs, 4, $KEYEVENTF_UNICODE)
+
+DllCall('user32.dll', 'uint', 'SendInput', 'uint', $iINPUTs, _
+        'ptr', $pINPUTs, 'int', $iInputSize)
+```
+
+Для вызова `SendInput` мы использовали функцию AutoIt `DllCall`. Эта функция вызывает из **динамческой библиотеки** (DLL) подпрограмму, написанную на языке C или C++. Её входные параметры должны иметь типы, согласно документации WinAPI. Некоторые из этих типов AutoIt не поддерживает на уровне синтаксиса. Поэтому нам нужны дополнительные функции, чтобы подготовить входные параметры для `SendInput`.
+
+Рассмотрим, какие параметры мы передали в функцию `DllCall`:
+
+* `user32.dll` - имя библиотеки, подпрограмму которой требуется вызвать.
+
+* `uint` - это тип возвращаемого значения подпрограммы.
+
+* `SendInput` - её имя.
+
+* `uint, $iINPUTs, ptr, $pINPUTs, int, $iInputSize` - пары тип-переменная, которые являются входными параметрами подпрограммы.
+
+Согласно WinAPI документации, декларация функции `SendInput` выглядит следующим образом:
+```C++
+UINT SendInput(UINT cInputs, LPINPUT pInputs, int cbSize);
+```
+Строчку вызова функции `DllCall` на AutoIt можно представить следующим эквивалентом на языке C++:
+```C++
+SendInput(iINPUTs, pINPUTs, iInputSize);
+```
+Рассмотрим входные параметры, переданные нами в `SendInput`:
+
+1. `iINPUTs` - количество структур типа `INPUT`, которые передаются вторым параметром. В нашем случае это количество равно единице.
+
+2. `pINPUTs` - указатель на массив структур типа `INPUT` из одного элемента. Этот массив подготавливается в несколько этапов. Сначала мы объявляем AutoIt переменные, описывающие структуры `KEYBDINPUT` и `INPUT`. Структура `KEYBDINPUT` нужна, поскольку является одним из полей `INPUT`. Такое отношение называется **вложенные структуры**. Следующий шаг - создание C++ структуры через вызов `DllStructCreate`. Результат сохраняется в переменной `tINPUTs`. С помощью функции `DllStructGetPtr` мы получаем указатель на эту структуру и помещаем его в `pINPUTs`. Когда структура создана, мы записываем её поля через `DllStructSetData` вызовы. Обратите внимание, что второй параметр `DllStructSetData` - это номер поля структуры начиная с единицы. В случае вложенных структур нумерация продолжается. То есть элемент 1 соответствует полю `dword type` структуры `INPUT`, а элемент 3 - полю `word wScan` структуры `KEYBDINPUT`.
+
+3. `iInputSize` - размер в байтах одной структуры `INPUT`. В нашем случае это константное значение, рассчитанное по формуле:
+```
+dword + (word + word + dword + dword + ulong_ptr) + dword =
+4 + (2 + 2 + 4 + 4 + 8) + 4 = 28
+```
+Слагаемые в скобочках - это размеры полей вложенной структуры `KEYBDINPUT`.
+
+
+
+
 
