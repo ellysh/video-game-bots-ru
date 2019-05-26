@@ -295,7 +295,8 @@ $hWnd = WinGetHandle("[CLASS:MSPaintApp]")
 WinActivate($hWnd)
 MouseClickDrag("left", 250, 300, 400, 500)
 ```
-
+После запуска скрипт `MouseClickDrag.au3` рисует линию в окне Paint.
+Координаты начала линии: x = 250, y = 300. Она заканчивается в точке с координатами x = 400, y = 500. Функция AutoIt `MouseClickDrag` вызывает внутри себя уже знакомую нам `mouse_event` WinAPI подпрограмму. Обе AutoIt функции `MouseClick` и `MouseClickDrag` симулируют действия мыши только в активном окне.
 
 
 
