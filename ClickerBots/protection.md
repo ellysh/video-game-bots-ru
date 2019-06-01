@@ -41,3 +41,154 @@ wend
 
 `SimpleBot.au3` - это отправная точка нашего исследования. Его цель отличить симулируемые этим скриптом нажатия клавиш от действий пользователя в окне Блокнота. Для написания наших прототипов алгоритмов обнаружения, мы также воспользуемся языком AutoIt. Это позволит писать простой и компактный код. Для реальных систем защиты предпочтительнее использовать компилируемые языки вроде C или C++.
 
+## Анализ действий
+
+### Вычисление временных задержек
+
+Скрипт `SimpleBot.au3` симулирует одни и те же действия в цикле. Их систематичность - это первое, что бросается в глаза. Еще раз обратимся к коду скрипта. Между каждым действием и предыдущим стоят задержки. Человек не может выдерживать временные интервалы настолько точно, как это делает программа. Более того, такая чёткость в задержках не имеет никакого смысла в компьютерной игре, потому что зачастую пользователь должен реагировать на различные ситуации. Если кто-то ведёт себя подобным образом, очень вероятно что это программа.
+
+Алгоритм защиты может замерять задержки между двумя одинаковыми действиями. Если задержка между ними отличается не более чем на 100 миллисекунд, они симулируются ботом. Попробуем реализовать такую защиту.
+
+---
+Скорость реакции среднестатистического человека примерно равна 300 миллисекундам. У профессиональных игроков она меньше (порядка 150 миллисекунд).
+---
+
+Наш скрипт должен выполнять две задачи: перехватывать действия пользователя и измерять временные задержки между ними. Код в листинге 2-29 реализует перехват нажатия клавиш.
+
+**Листинг 2-29.** *Перехват нажатия клавиш*
+```AutoIt
+global const $gKeyHandler = "_KeyHandler"
+
+func _KeyHandler()
+    $keyPressed = @HotKeyPressed
+
+    LogWrite("_KeyHandler() - asc = " & asc($keyPressed) & " key = " & $keyPressed)
+    AnalyzeKey($keyPressed)
+
+    HotKeySet($keyPressed)
+    Send($keyPressed)
+    HotKeySet($keyPressed, $gKeyHandler)
+endfunc
+
+func InitKeyHooks($handler)
+    for $i = 0 to 255
+        HotKeySet(Chr($i), $handler)
+    next
+endfunc
+
+InitKeyHooks($gKeyHandler)
+
+while true
+    Sleep(10)
+wend
+```
+Мы применили функцию AutoIt `HotKeySet`, чтобы назначить обработчик (handler или hook) для нажимаемых клавиш. В пользовательской функции `InitKeyHooks` мы вызываем `HotKeySet` для кода каждой клавиши в `for` цикле от 0 до 255. Таким образом, при нажатии любой клавиши будет вызван обработчик `_KeyHandler`. Он выполняет следующие шаги:
+
+1. Вызывает функцию `AnalyzeKey`, передавая ей код нажатой клавиши. Этот код хранится в макросе `@HotKeyPressed`.
+
+2. Выключает перехват следующего нажатия обрабатываемой клавиши. Для этого снова вызывается функция `HotKeySet`. Данный шаг нужен, чтобы нажатие дошло до приложения Блокнот.
+
+3. Вызывает функцию `Send` для симуляции нажатия обрабатываемой клавиши в Блокноте.
+
+4. Включает перехват последующих нажатий.
+
+Листинг 2-30 демонстрирует код функции `AnalyzeKey`.
+
+**Листинг 2-30.** *Функция `AnalyzeKey`*
+```AutoIt
+global $gTimeSpanA = -1
+global $gPrevTimestampA = -1
+
+func AnalyzeKey($key)
+    local $timestamp = (@SEC * 1000 + @MSEC)
+    LogWrite("AnalyzeKey() - key = " & $key & " msec = " & $timestamp)
+    if $key <> 'a' then
+        return
+    endif
+
+    if $gPrevTimestampA = -1 then
+        $gPrevTimestampA = $timestamp
+        return
+    endif
+
+    local $newTimeSpan = $timestamp - $gPrevTimestampA
+    $gPrevTimestampA = $timestamp
+
+    if $gTimeSpanA = -1 then
+        $gTimeSpanA = $newTimeSpan
+        return
+    endif
+
+    if Abs($gTimeSpanA - $newTimeSpan) < 100 then
+        MsgBox(0, "Alert", "Clicker bot detected!")
+    endif
+endfunc
+```
+В функции `AnalyzeKey` мы замеряем задержки между нажатиями клавиши "a". Две глобальные переменные хранят текущее состояние алгоритма:
+
+1. `gPrevTimestampA` - это момент времени (timestamp) первого нажатия.
+
+2. `gTimeSpanA` - это задержка между первым и вторым нажатиями.
+
+При старте скрипта обоим переменным присваивается значение "-1", которое соответствует неинициализированному состоянию. Нашему алгоритму требуется перехватить минимум три нажатия клавиши, чтобы обнаружить бота. Первое нажатие инициализирует переменную `gPrevTimestampA`:
+```AutoIt
+    if $gPrevTimestampA = -1 then
+        $gPrevTimestampA = $timestamp
+        return
+    endif
+```
+Момент времени второго нажатия мы используем для расчета переменной `gTimeSpanA`. Она равна разности между временем первого и второго нажатий:
+```AutoIt
+    local $newTimeSpan = $timestamp - $gPrevTimestampA
+    $gPrevTimestampA = $timestamp
+
+    if $gTimeSpanA = -1 then
+        $gTimeSpanA = $newTimeSpan
+        return
+    endif
+```
+После третьего нажатия мы можем рассчитать задержку второй раз (переменная `newTimeSpan`) и сранить её со значением `gTimeSpanA`:
+```AutoIt
+    if Abs($gTimeSpanA - $newTimeSpan) < 100 then
+        MsgBox(0, "Alert", "Clicker bot detected!")
+    endif
+```
+Если разница между первой и второй задержкой менее 100 миллисекунд, алгоритм защиты выводит сообщение об обнаружении бота.
+
+Полный код защиты представлен в скрипте `TimeSpanProtection.au3` из листинга 2-31. В нём мы опустили реализацию функций `_KeyHandler` и `AnalyzeKey`, поскольку рассмотрели их ранее.
+
+**Листинг 2-31.** *Скрипт `TimeSpanProtection.au3`*
+```AutoIt
+global const $gKeyHandler = "_KeyHandler"
+global const $kLogFile = "debug.log"
+
+global $gTimeSpanA = -1
+global $gPrevTimestampA = -1
+
+func LogWrite($data)
+    FileWrite($kLogFile, $data & chr(10))
+endfunc
+
+func _KeyHandler()
+    ; См листинг 2-29
+endfunc
+
+func InitKeyHooks($handler)
+    for $i = 0 to 256
+        HotKeySet(Chr($i), $handler)
+    next
+endfunc
+
+func AnalyzeKey($key)
+    ; См листинг 2-30
+endfunc
+
+InitKeyHooks($gKeyHandler)
+
+while true
+    Sleep(10)
+wend
+```
+
+### Анализ последовательности действий
+
