@@ -538,5 +538,128 @@ wend
 
 Мы можем исправить алгоритм защиты так, чтобы он игнорировал все заголовки исполняемого файла при подсчёте хэш-суммы. Альтернативное решение - считать MD5 не для всего содержания файла, а только для небольшого набора байтов из строго определённого места в нём.
 
+## Проверка состояния клавиатуры
+
+Windows предоставляет механизм уровня ядра, который позволяет отличить реальное нажатие клавиши клавиатуры от симулируемого. Рассмотрим, как мы можем использовать этот механизм для обнаружения кликеров.
+
+Прежде всего, мы должны перехватить событие нажатия клавиши на низком уровне. В этом нам поможет WinAPI подпрограмма `SetWindowsHookEx`. Принцип её работы похож на функцию AutoIt `HotKeySet` - она устанавливает обработчик различных событий ОС. Первый параметр `SetWindowsHookEx` определяет тип перехватываемых событий. В нашем случае он должен быть равен `WH_
+KEYBOARD_LL`.
+
+Теперь мы должны реализовать функцию-обработчик события. Она получает входным параметром структуру типа `KBDLLHOOKSTRUCT`, которая содержит полную информацию о перехваченном событии. У этой структуры есть поле `flags`. Если это поле содержит значение `LLKHF_INJECTED`, перехваченное нажатие клавиши было симулировано WinAPI подпрограммой `SendInput` или `keybd_event`. Если значения `LLKHF_INJECTED` нет, источником события является клавиатура. Подменить значение `flags` структуры `KBDLLHOOKSTRUCT` достаточно сложно, поскольку оно выставляется на уровне ядра ОС.
+
+Скрипт `KeyboardCheckProtection.au3` из листинга 2-38 демонстрирует проверку флага `LLKHF_INJECTED`.
+
+**Листинг 2-38.** *Скрипт `KeyboardCheckProtection.au3`*
+```AutoIt
+#include <WinAPI.au3>
+
+global const $kLogFile = "debug.log"
+global $gHook
+
+func LogWrite($data)
+    FileWrite($kLogFile, $data & chr(10))
+endfunc
+
+func _KeyHandler($nCode, $wParam, $lParam)
+    if $nCode < 0 then
+        return _WinAPI_CallNextHookEx($gHook, $nCode, $wParam, $lParam)
+    endIf
+
+    local $keyHooks = DllStructCreate($tagKBDLLHOOKSTRUCT, $lParam)
+
+    LogWrite("_KeyHandler() - keyccode = " & DllStructGetData($keyHooks, "vkCode"));
+
+    local $flags = DllStructGetData($keyHooks, "flags")
+    if $flags = $LLKHF_INJECTED then
+        MsgBox(0, "Alert", "Clicker bot detected!")
+    endif
+
+    return _WinAPI_CallNextHookEx($gHook, $nCode, $wParam, $lParam)
+endfunc
+
+func InitKeyHooks($handler)
+    local $keyHandler = DllCallbackRegister($handler, "long", _
+                                         "int;wparam;lparam")
+    local $hMod = _WinAPI_GetModuleHandle(0)
+    $gHook = _WinAPI_SetWindowsHookEx($WH_KEYBOARD_LL, _
+                        DllCallbackGetPtr($keyHandler), $hMod)
+endfunc
+
+InitKeyHooks("_KeyHandler")
+
+while true
+    Sleep(10)
+wend
+```
+Алгоритм назначения обработчика нажатий клавиш похож на тот, который мы применяли в скриптах `TimeSpanProtection.au3` и `ActionSequenceProtection.au3`. Только в данном случае мы вызываем WinAPI подпрограмму через AutoIt обёртку `_WinAPI_SetWindowsHookEx` в функции `InitKeyHooks`. Таким образом мы инициализируем обработчик `_KeyHandler`, который будет перехватывать все события клавиатуры.
+
+Функция `InitKeyHooks` выполняет следующие шаги:
+
+1. Зарегестрировать обработчик `_KeyHandler` через AutoIt функцию `DllCallbackRegister`. Это позволит передавать его в WinAPI подпрограммы.
+
+2. Получить дескриптор первого модуля (нумерация начинается с нуля) текущего процесса через обёртку `_WinAPI_GetModuleHandle`. Не забудьте, что наш скрипт выполняется в интерпретаторе AutoIt.
+
+3. Добавить `_KeyHandler` в цепочку обработчиков через WinAPI подпрограмму `SetWindowsHookEx`. В неё мы должны передать дескриптор модуля, в котором этот обработчик реализован.
+
+Алгоритм проверки наличия флага `LLKHF_INJECTED` в обработчике `_KeyHandler` выглядит следующим образом:
+
+1. Проверить значение параметра `nCode`. Если оно меньше нуля, мы передаём событие дальше по цепочке обработчиков. В этом случае оно не содержит нужной нам структуры `KBDLLHOOKSTRUCT`.
+
+2. Если параметр `nCode` не равен нулю, вызвать функцию `DllStructCreate` и передать в неё `lParam`. Таким образом мы получаем структуру `KBDLLHOOKSTRUCT`.
+
+3. Читаем поле `flags` из структуры `KBDLLHOOKSTRUCT` с помощью функции `DllStructGetData`.
+
+4. Проверить наличие флага `LLKHF_INJECTED`. Если он присутствует, нажатие клавиши было симулировано ботом.
+
+Для тестирования алгоритма `KeyboardCheckProtection.au3` запустите Блокнот и бота `SimpleBot.au3`. Как только он выполнит первое нажатие клавиши, вы увидите сообщение о его обнаружении.
+
+Есть несколько способов обойти подобную защиту. Их основная идея - симулировать нажатия так, чтобы ядро ОС воспринимало их идущими от клавиатуры. Эти способы следующие:
+
+1. Использовать виртуальную машину (virtual machine или VM).
+
+2. Использовать специальный драйвер клавиатуры вместо WinAPI подпрограмм `SendInput` и `keybd_event` для симуляции нажатий. Пример такого драйвера - InpOut32 (www.highrez.co.uk/downloads/inpout32).
+
+3. Эмулировать клавиатуру или мышь на специальном устройстве. Мы рассмотрим этот подход в пятой главе.
+
+Самый простой из этих подходов - использовать виртуальную машину. У неё есть виртуальные драйверы устройств. Они решают две задачи: эмулируют устройства для **гостевой ОС** (запущенной внутри VM) и предоставляют доступ к реальным устройствам. Все события симулируемые на хост-системе (на которой запускается VM) и идущие от реальных устройств проходят через виртуальные драйверы. Из-за этого гостевая ОС не может отличить их источник. Поэтому симулируемые ботом нажатия не будут иметь флага `LLKHF_INJECTED`.
+
+Для запуска VM и нашего тестового бота выполните следующие шаги:
+
+1. Установите одну из следующих виртуальных машин:
+    * Virtual Box (www.virtualbox.org/wiki/Downloads)
+    * VMWare Player (www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
+    * Windows Virtual PC (www.microsoft.com/en-us/download/details.aspx?id=3702)
+
+2. Установите Windows в качестве гостевой ОС.
+
+3. Запустите на ней Блокнот и скрипт `KeyboardCheckProtection.au3`.
+
+4. Запустите скрипт `VirtualMachineBot.au3` на хост-системе.
+
+Скрипт `VirtualMachineBot.au3` из листинга 2-39 представляет адаптированную версию нашего бота.
+
+**Листинг 2-39.** *Скрипт `VirtualMachineBot.au3`*
+```AutoIt
+Sleep(2000)
+
+while true
+    Send("a")
+    Sleep(1000)
+    Send("b")
+    Sleep(2000)
+    Send("c")
+    Sleep(1500)
+wend
+```
+Скрипт `VirtualMachineBot.au3` отличается от `SimpleBot.au3` процедурой переключения на окно Блокнота. Теперь бот не может самостоятельно его найти, поскольку Блокнот запущен на гостевой ОС. Мы добавили двухсекундную задержку после старта скрипта, чтобы у вас было время переключиться на окно VM и Блокнот внутри неё. Алгоритм защиты `KeyboardCheckProtection.au3` не сможет обнаружить скрипт `VirtualMachineBot.au3`.
+
+
+
+
+
+
+
+
+
 
 
