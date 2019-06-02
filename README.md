@@ -9,5 +9,5 @@
 ## Ссылки
 
 * [Читать книгу онлайн](https://www.gitbook.com/read/book/ellysh/video-game-bots-ru)
-* [Скачать в форматах PDF, ePub или Mobi](https://www.gitbook.com/book/ellysh/video-game-bots/details)
+* [Скачать в форматах PDF, ePub или Mobi](https://www.gitbook.com/book/ellysh/video-game-bots-ru/details)
 * [Связь с автором](mailto:petrsum@gmail.com)
