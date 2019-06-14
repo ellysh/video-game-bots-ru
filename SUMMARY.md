@@ -11,3 +11,6 @@
     * [Перехват устройств вывода](ClickerBots/output-device-capture.md)
     * [Пример кликера для Lineage 2](ClickerBots/example.md)
     * [Приёмы защиты от кликеров](ClickerBots/protection.md)
+* [Внутриигровые боты](InGameBots/README.md)
+    * [Инструменты для разработки](InGameBots/tools.md)
+    * [Анализ памяти процесса](InGameBots/process-memory-analysis.md)
