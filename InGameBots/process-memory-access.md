@@ -306,7 +306,45 @@ PTEB GetTeb()
     return pTeb;
 }
 ```
+Новый вариант функции `GetTeb` работает для архитектур x86 и x64. Чтобы выбрать подходящую реализацию, используется директива условной компиляции [**препроцессора**](https://ru.wikipedia.org/wiki/%D0%9F%D1%80%D0%B5%D0%BF%D1%80%D0%BE%D1%86%D0%B5%D1%81%D1%81%D0%BE%D1%80_%D0%A1%D0%B8). Если макрос `_M_X64` определён, целевая архитектура приложения 64-разряная. В этом случае вызывается встроенная функция компиляора `__readgsqword`, которая читает 64-битное значение со смещением 0x30 от базового адреса сегмента TEB (на него указывает регистр GS через селектор). Для 32-разрядной архитектуры вызывается встроенная функция `__readfsdword`, которая читает 32-битное значение со смщением 0x18 от базового адреса сегмента TEB (на него указывает регистр FS).
 
+Глядя на новую реализацию функции `GetTeb`, возникает вопрос: почему поле структуры TEB с базовым адресом сегмента имеет разные смещения для x86 и x64 архитектур? Чтобы ответить на него, расмотрим определение структуры `NT_TIB`, которая используется для представления части TEB структуры, независимой от версии Windows:
+```C++
+typedef struct _NT_TIB {
+    struct _EXCEPTION_REGISTRATION_RECORD *ExceptionList;
+    PVOID StackBase;
+    PVOID StackLimit;
+    PVOID SubSystemTib;
+     union
+     {
+          PVOID FiberData;
+          ULONG Version;
+     };
+    PVOID ArbitraryUserPointer;
+    struct _NT_TIB *Self;
+} NT_TIB;
+```
+Поле с базовым адресом сегмента TEB называется `Self`. До него идут шесть полей, каждое из которых имеет тип `PVOID`. `PVOID` - это указатель на обасть памяти. Его размер зависит от разрядности процессора: 32 бита (или 4 байа) для архитектуры x86 и 64 бита (или 8 байт) для x64. Таким образом, в первом случае поле `Self` окажется смещено на 24 байта (6 * 4), а во втором на 48 байт (6 * 8). Переведём эти числа в шестнадцатеричную систему счислеиния  и получим: 0x18 и 0x30 соответственно.
 
+Вместо того чтобы указывать смещения явно, мы можем использовать стуктуру `NT_TIB` и отступ поля `Self` от её начала. Листинг 3-5 демонстрирует это решение.
+
+**Листинг 3-5.** *Портируемая версия функции `GetTeb`*
+```C++
+#include <windows.h>
+#include <winternl.h>
+
+PTEB GetTeb()
+{
+#if defined(_M_X64) // x64
+    PTEB pTeb = reinterpret_cast<PTEB>(__readgsqword(reinterpret_cast<DWORD>(
+                                       &static_cast<PNT_TIB>(nullptr)->Self)));
+#else // x86
+    PTEB pTeb = reinterpret_cast<PTEB>(__readfsdword(reinterpret_cast<DWORD>(
+                                       &static_cast<PNT_TIB>(nullptr)->Self)));
+#endif
+    return pTeb;
+}
+```
+Это реализация функции `GetTeb` из [статьи](https://www.autoitscript.com/forum/topic/164693-implementation-of-a-standalone-teb-and-peb-read-method-for-the-simulation-of-getmodulehandle-and-getprocaddress-functions-for-loaded-pe-module). В ней исользуются уже знакомые нам встроенные функции `__readgsqword` и `__readfsdword`.
 
 
