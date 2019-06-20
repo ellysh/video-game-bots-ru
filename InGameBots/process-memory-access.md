@@ -556,11 +556,125 @@ int main()
 
 В общем случае, при старте нового процесса Windows назначает базовый адрес сегмента TEB произвольно. Для 32-разрядных приложений этот адрес часто оказывается одним и тем же. Но для 64-разрядных приложений, он меняется при каждом запуске. Поэтому рассмотренный нами метод доступа к TEB не рекомендуется применять в реальных ботах. Благодаря своей простоте, он хорош только в качестве обучающего примера.
 
+Наш учебный пример справляется с однопоточными целевыми процессами. Может ли он работать с многопоточными? Да, но для этого надо немного изменить код листинга 3-8. Наше приложение должно создавать столько же вспомогательных потоков, сколько имеет целевой процесс. Затем оно должно читать базовые адреса их TEB сегментов. Через эти адреса можно пытаться получить доступ к TEB потокам целевого процесса.
+
 Для всех примеров этой главы важно помнить, что разрядность целевого процесса и вашего приложения должна быть одинаковой. Чтобы выбрать разрядность компилируемого приложения в Visual Studio, укажите желаемую целевую архитектуру в элементе интерфейса "Solution Platforms".
 
 #### Перебор всех потоков целевого процесса
 
+WinAPI предоставляет функции прохода по всем потокам, работающим на данный момент в ОС. Если с помощью этих функций мы узнаем дескрипторы потоков целевого процесса, мы легко сможем прочитать их TEB сегменты через уже знакомую нам функцию `NtQueryInformationThread`.
 
+Функции прохода по списку активных потоков следующие:
+
+* `CreateToolhelp32Snapshot` делает снимок текущего состояния системы со всеми запущнными процессам, их потоками, модулями и сегментами динамической памяти. В фукцию можно передать PID целевого процесса, тогда в снимок попадёт только он и его ресурсы.
+
+* `Thread32First` начинает перебор потоков в указанном снимке состояния системы. Функция записывает результат своей работы в структуру типа `THREADENTRY32`, переданную входным параметром по указателю. Эта структура содержит информацию о первом потоке в снимке.
+
+* `Thread32Next` продолжает перебор потоков в указаном снимке. Имеет теже входные и выходные параметры, что и функция `Thread32First`.
+
+Приложение `TebPebTraverse.cpp` из листинга 3-9 демонстрирует алгоритм перебора потоков.
+
+**Листинг 3-9.** *Приложение `TebPebTraverse.cpp`*
+```C++
+#include <windows.h>
+#include <tlhelp32.h>
+#include <winternl.h>
+
+#pragma comment(lib,"ntdll.lib")
+
+typedef struct _CLIENT_ID {
+    // See struct definition in the TebPebSelf.cpp application
+} CLIENT_ID, *PCLIENT_ID;
+
+typedef struct _THREAD_BASIC_INFORMATION {
+    // See struct definition in the TebPebSelf.cpp application
+} THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
+
+typedef enum _THREADINFOCLASS2
+{
+    // See enumeration definition in the TebPebSelf.cpp application
+}   THREADINFOCLASS2;
+
+PTEB GetTeb(HANDLE hThread)
+{
+    THREAD_BASIC_INFORMATION threadInfo;
+    NTSTATUS result = NtQueryInformationThread(hThread,
+                                    (THREADINFOCLASS)ThreadBasicInformation,
+                                    &threadInfo, sizeof(threadInfo), NULL);
+    if (result)
+    {
+        printf("NtQueryInformationThread return error: %d\n", result);
+        return NULL;
+    }
+    return reinterpret_cast<PTEB>(threadInfo.TebBaseAddress);
+}
+
+void ListProcessThreads(DWORD dwOwnerPID)
+{
+    HANDLE hThreadSnap = INVALID_HANDLE_VALUE;
+    THREADENTRY32 te32;
+
+    hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+
+    if (hThreadSnap == INVALID_HANDLE_VALUE)
+        return;
+
+    te32.dwSize = sizeof(THREADENTRY32);
+
+    if (!Thread32First(hThreadSnap, &te32))
+    {
+        CloseHandle(hThreadSnap);
+        return;
+    }
+
+    DWORD result = 0;
+    do
+    {
+        if (te32.th32OwnerProcessID == dwOwnerPID)
+        {
+            printf("\n     THREAD ID = 0x%08X", te32.th32ThreadID);
+
+            HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE,
+                                        te32.th32ThreadID);
+            PTEB pTeb = GetTeb(hThread);
+            printf("\n     TEB = %p\n", pTeb);
+
+            CloseHandle(hThread);
+        }
+    } while (Thread32Next(hThreadSnap, &te32));
+
+    printf("\n");
+    CloseHandle(hThreadSnap);
+}
+
+int main()
+{
+    DWORD pid = 4792;
+
+    ListProcessThreads(pid);
+
+    return 0;
+}
+```
+Это приложение выводит в консоль список потоков целевого процесса. Для каждого из ни указывается идентификатор, назначенный ОС, и базовый адрес соотвествующего TEB сегмента.
+
+Вся работа приложения происходит в функции `ListProcessThreads`, в которую передаётся PID целевого процесса. Для создания снимка состояния системы и работы с ним привилегия `SE_DEBUG_NAME` не требуется. Поэтому при запуске примера будет достаточно предоставить ему только права администратора.
+
+Алгоритм работы функции `ListProcessThreads` следующий:
+
+1. Сделать снимок состояния системы через WinAPI вызов `CreateToolhelp32Snapshot`.
+
+2. Начать проход по потокам в снимке с помощью функции `Thread32First`.
+
+3. Сравнить PID процесса, которому принадлежит последний прочитанный поток, с PID целевого процесса.
+
+4. Если идентификаторы совпадают, прочитать `TEB` структуру этого потока с помощью функции `GeTeb`.
+
+5. Вывести в консоль полученную информацию о потоке.
+
+6. Перейти к следующему потоку в снимке состояния системы через вызов `Thread32Next`. Повторить шаги 3, 4, 5 для каждого потока в снимке.
+
+Метод доступа к TEB из листинга 3-9 надёжен и работает для многопоточных целевых процессов любой разрядности. Применяйте в своих приложениях именно его.
 
 
 
