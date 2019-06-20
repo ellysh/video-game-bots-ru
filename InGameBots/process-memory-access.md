@@ -236,7 +236,7 @@ Result of reading dword at 0x1e0000 address = 0xdeadbeef
 
 ### Доступ к TEB текущего процесса
 
-#### 32-битный процесс
+#### Главный поток 32-битного процесса
 
 Рассмотрим методы доступа к TEB сегменту. Начнём с самого простого варианта этой задачи. У нас есть однопоточное приложение. Как оно может получить доступ к TEB своего главного потока? Существует несколько путей решения этой задачи.
 
@@ -285,7 +285,7 @@ typedef struct _TEB {
 ```
 Среди прочих есть поле `ProcessEnvironmentBlock`, которое указывает на структуру PEB. Мы можем воспользоваться этим указателем, чтобы получить доступ к PEB сегменту.
 
-#### 64-битный процесс
+#### Главный поток 64-битного процесса
 
 Мы не можем воспользоваться функцией аналогичной `GetTeb` из листинга 3-3 на 64-разрядной системе. Проблема в том, что компилятор Visual Studio C++ не поддерживает ассемблерные вставки при компиляции 64-разрядных приложений. Вместо этих вставок должны использоваться **встроенные функции компилятора** (compiler intrinsics).
 
@@ -349,6 +349,112 @@ PTEB GetTeb()
 
 Версия функции `GetTeb` из листинга 3-5 позволяет исключить использование явно заданных в коде смещений. Благодаря этому она будет корректно работать для всех версий Windows, даже если эти смещения изменятся.
 
-#### WinAPI функция
+#### WinAPI функции доступа к TEB
+
+Получить доступ к TEB сегменту можно и через WinAPI. Функция `NtCurrentTeb` реализует тот же алгоритм, что и `GetTeb` из листинга 3-5. С её помощью мы можем получить указатель на струкуру типа `TEB` текущего потока. Листинг 3-6 демонстрирует использование функции `NtCurrentTeb`.
+
+**Листинг 3-6.** *Пример вызова WinAPI функции `NtCurrentTeb`*
+```C++
+#include <windows.h>
+#include <winternl.h>
+
+PTEB pTeb = NtCurrentTeb();
+```
+Теперь все манипуляции над регистрами FS и GS происходят на уровне системной библиотеки ОС. Мы можем рассчитывать на её корректную работу для всех архитекутур, поддерживаемых Windows (x86, x64, ARM).
+
+До сих пор мы рассматривали случай однопоточного приложения. Если например нам нужно получить TEB вспомогательного потока из функции `main` (то есть гланого потока), то все рассмотренные выше способы не подходят.
+
+WinAPI функция `NtQueryInformationThread` предоставляет доступ к TEB любого потока процесса. Она работает только в контексте вызывающего процесса, т.е. с её помощью вы не сможете прочитать TEB игрового приложения из бота. Но в некоторых случаях `NtQueryInformationThread` может быть полезна. Листинг 3-7 демонстрирует реализацию `GetTeb`, которая использует `NtQueryInformationThread`.
+
+**Листинг 3-7.** *Функция`GetTeb`, вызывающая `NtQueryInformationThread`*
+```C++
+#include <windows.h>
+#include <winternl.h>
+
+#pragma comment(lib,"ntdll.lib")
+
+typedef struct _CLIENT_ID {
+    DWORD UniqueProcess;
+    DWORD UniqueThread;
+} CLIENT_ID, *PCLIENT_ID;
+
+typedef struct _THREAD_BASIC_INFORMATION {
+    typedef PVOID KPRIORITY;
+    NTSTATUS ExitStatus;
+    PVOID TebBaseAddress;
+    CLIENT_ID ClientId;
+    KAFFINITY AffinityMask;
+    KPRIORITY Priority;
+    KPRIORITY BasePriority;
+} THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
+
+typedef enum _THREADINFOCLASS2 {
+    ThreadBasicInformation,
+    ThreadTimes,
+    ThreadPriority,
+    ThreadBasePriority,
+    ThreadAffinityMask,
+    ThreadImpersonationToken,
+    ThreadDescriptorTableEntry,
+    ThreadEnableAlignmentFaultFixup,
+    ThreadEventPair_Reusable,
+    ThreadQuerySetWin32StartAddress,
+    ThreadZeroTlsCell,
+    ThreadPerformanceCount,
+    ThreadAmILastThread,
+    ThreadIdealProcessor,
+    ThreadPriorityBoost,
+    ThreadSetTlsArrayAddress,
+    _ThreadIsIoPending,
+    ThreadHideFromDebugger,
+    ThreadBreakOnTermination,
+    MaxThreadInfoClass
+} THREADINFOCLASS2;
+
+PTEB GetTeb()
+{
+    THREAD_BASIC_INFORMATION threadInfo;
+    if (NtQueryInformationThread(GetCurrentThread(),
+                                 (THREADINFOCLASS)ThreadBasicInformation,
+                                 &threadInfo, sizeof(threadInfo), NULL))
+    {
+        printf("NtQueryInformationThread return error\n");
+        return NULL;
+    }
+    return reinterpret_cast<PTEB>(threadInfo.TebBaseAddress);
+}
+```
+Параметры функции `NtQueryInformationThread` рассмотрены в таблице 3-5. 
+
+**Таблица 3-5.** *Параметры функции `NtQueryInformationThread`*
+
+| Параметр | Описание |
+| --- | --- |
+| `GetCurrentThread()` | Дескриптор целевого потока, TEB которого требуется прочитать. В примере используется дескриптор текущего потока. |
+| `ThreadBasicInformation` | Константа типа перечисления (enum) `THREADINFOCLASS`. Она определяет тип структуры, возвращаемой функцией. |
+| `threadInfo` | Указатель на структуру, в которую функция запишет свой результат. |
+| `sizeof(...)` | Размер структуры с результатом функции. В нашем случае - это размер `threadInfo`. |
+| `NULL` | Укзатель на переменную, которая равна числу байт, записанных в структуру с результатом (`threadInfo`). |
+
+Чтобы прочитать структуру `THREAD_BASIC_INFORMATION` для заданного потока, мы должны передать в функцию `NtQueryInformationThread` константу `ThreadBasicInformation` типа `THREADINFOCLASS`. К сожалению, эта константа не документирована. Кроме того она не опеделена в заголовочном файле `winternl.h`. В нём есть только константа `ThreadIsIoPending`.
+
+Чтобы использовать недокументированную константу типа `THREADINFOCLASS`, её над определить самостоятельно. Для этого определим новое перечисление типа `THREADINFOCLASS2`, которое содержит все необходимые нам константы. Подробнее о них, вы можете узнать в [неофициальной докуметации](http://undocumented.ntinternals.net/index.html?page=UserMode/Undocumented%20Functions/NT%20Objects/Thread/THREAD_INFORMATION_CLASS.html).
+
+В нашем новом перечислении типа `THREADINFOCLASS2` не должно быть константы с именем `ThreadIsIoPending`, иначе она будет конфликтовать с определением из заголовочного файла `winternl.h`. Поэтому в листинге 3-7 мы переименовали эту константу на `_ThreadIsIoPending`.
+
+Функция `NtQueryInformationThread` возвращает структуру данных, тип который зависит от переданного вторым параметром константы. Если мы передаём недокументированую константу `ThreadBasicInformation`, то тип возвращаемой структуры будет также недокументирован. Поэтому мы должны самостоятельно определить тип `THREAD_BASIC_INFORMATION`. Вы можете найти его в уже упомянутой неофициальный документации или скопировать из листинга 3-7.
+
+Обратите внимание на определение структуры `THREAD_BASIC_INFORMATION`. Она отличается от структуры `TEB`. Тем не менее её поле `TebBaseAddress` содержит базовый адрес сегмента TEB.
+
+Функция `NtQueryInformationThread` доступна через Native API интерфейс. Она реализована в динамической библиотеке `ntdll.dll`, которая всегда входит в состав дистрибутива Windows. Эта библиотека активно используется системами ОС. Но чтобы вызвать её функции из пользовательского приложения, понадобится библиотека импорта `ntdll.lib` и заголовочны файл `winternl.h`. Windows SDK предоставляет оба этих файла.
+
+Воспользоваться библиотекой импорта можно с помощью **директивы pragma**:
+```C++
+#pragma comment(lib, "ntdll.lib")
+```
+Эта строчка добавляет файл `ntdll.lib` в список библиотек импорта, которым воспользуется компоновщик.
+
+В архиве примеров к этой книге вы можете найти файл `TebPebSelf.cpp`, в котором приведены все рассмотренные нами способы доступа к TEB и PEB сегментам.
+
 
 
