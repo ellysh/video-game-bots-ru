@@ -14,3 +14,4 @@
 * [Внутриигровые боты](InGameBots/README.md)
     * [Инструменты для разработки](InGameBots/tools.md)
     * [Анализ памяти процесса](InGameBots/process-memory-analysis.md)
+    * [Доступ к памяти процесса](InGameBots/process-memory-access.md)
