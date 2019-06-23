@@ -507,7 +507,7 @@ wend
 
 1. Сделать незначительное изменение в коде скрипта `SimpleBot.ahk` (например уменьшить задержку на пару миллисекунд) и скомпилировать его по новой.
 
-2. Изменить заголовок с метаинформацией исполняемого файла `AutoHotKey.exe`. Для этого можно воспользоваться редактором **HT editor** (hte.sourceforge.net).
+2. Изменить заголовок с метаинформацией исполняемого файла `AutoHotKey.exe`. Для этого можно воспользоваться редактором [**HT editor**](hte.sourceforge.net).
 
 Изменение машинного кода, записанного в исполняемый файл, чревато повреждением приложения. В этом случае оно завершится с ошибкой при старте. Но метаинформация, хранимая в **заголовке COFF** (Common Object File Format), не так чувствительна к изменениям. У заголовка есть несколько стандартных полей, одно из которых – время создания файла. Очевидно, изменение этого поля никак не повлияет на функциональность приложения. Этого будет достаточно, чтобы изменить MD5 сумму, рассчитанную по содержанию файла. В этом случае алгоритм защиты `Md5ScanProtection.au3` больше не сможет обнаружить бота.
 
@@ -613,7 +613,7 @@ wend
 
 1. Использовать виртуальную машину (virtual machine или VM).
 
-2. Использовать специальный драйвер клавиатуры вместо WinAPI подпрограмм `SendInput` и `keybd_event` для симуляции нажатий. Пример такого драйвера – InpOut32 (www.highrez.co.uk/downloads/inpout32).
+2. Использовать специальный драйвер клавиатуры вместо WinAPI подпрограмм `SendInput` и `keybd_event` для симуляции нажатий. Пример такого драйвера – [InpOut32](www.highrez.co.uk/downloads/inpout32).
 
 3. Эмулировать клавиатуру или мышь на специальном устройстве. Мы рассмотрим этот подход в пятой главе.
 
@@ -622,9 +622,9 @@ wend
 Для запуска VM и нашего тестового бота выполните шаги:
 
 1. Установите одну из следующих виртуальных машин:
-    * Virtual Box (www.virtualbox.org/wiki/Downloads)
-    * VMWare Player (www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
-    * Windows Virtual PC (www.microsoft.com/en-us/download/details.aspx?id=3702)
+    * [Virtual Box](www.virtualbox.org/wiki/Downloads)
+    * [VMWare Player](www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
+    * [Windows Virtual PC](www.microsoft.com/en-us/download/details.aspx?id=3702)
 
 2. Установите Windows в качестве гостевой ОС.
 
