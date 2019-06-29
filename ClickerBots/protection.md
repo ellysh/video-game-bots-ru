@@ -146,7 +146,7 @@ endfunc
         return
     endif
 ```
-После третьего нажатия мы можем рассчитать задержку второй раз (переменная `newTimeSpan`) и сравнить её со значением `gTimeSpanA`:
+После третьего нажатия мы можем вычислить задержку второй раз (переменная `newTimeSpan`) и сравнить её со значением `gTimeSpanA`:
 ```AutoIt
     if Abs($gTimeSpanA - $newTimeSpan) < 100 then
         MsgBox(0, "Alert", "Clicker bot detected!")
