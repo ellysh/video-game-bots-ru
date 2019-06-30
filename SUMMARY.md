@@ -15,3 +15,4 @@
     * [Инструменты для разработки](InGameBots/tools.md)
     * [Анализ памяти процесса](InGameBots/process-memory-analysis.md)
     * [Доступ к памяти процесса](InGameBots/process-memory-access.md)
+    * [Пример бота для Diablo 2](InGameBots/example.md)
