@@ -122,6 +122,7 @@ MOV AX,WORD PTR DS:[gLife]
 
 **Листинг 3-17.** *Исходный код бота для тестового приложения*
 ```C++
+#include <stdio.h>
 #include <windows.h>
 
 BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)
@@ -234,8 +235,38 @@ int main()
 
 Листинг 3-18 демонстрирует правильный способ использования функции `IsDebuggerPresent`.
 
-**Листинг 3-18.** *Защита тестового приложения вызовом `IsDebuggerPresent`*
+**Листинг 3-18.** *Защита тестового приложения вызовом `IsDebuggerPresent`*libre
+
 ```C++
+#include <stdio.h>
+
+int main()
+{
+    SHORT result = 0;
+
+    while (gLife > 0)
+    {
+        if (IsDebuggerPresent())
+        {
+            printf("debugger detected!\n");
+            exit(EXIT_FAILURE);
+        }
+        result = GetAsyncKeyState(0x31);
+        if (result != 0xFFFF8001)
+            --gLife;
+        else
+            ++gLife;
+
+        printf("life = %u\n", gLife);
+        Sleep(1000);
+    }
+    printf("stop\n");
+    return 0;
+}
 ```
+Теперь проверка наличия отладчика с помощью вызова `IsDebuggerPresent` происходит в начале каждой итерации `while` цикла. Поэтому если OllyDbg подключится к работающему приложению, он будет обнаружен.
+
+Как обойти такую защиту? Первый способ - манипуляция регистрами процессора в момент проверки. Мы можем вручную модифицировать возвращаемое функцией значение, чтобы обойти выполнение блока кода с вызовом `exit`.
+
 
 
