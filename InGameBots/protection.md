@@ -1031,4 +1031,160 @@ gLife = gLife - 1;
 ```
 Ещё одно улучшение - генерация случайного ключа шифрования (зачение константы `MASK` в нашем примере) в конструкторе шаблона класса. Благодаря этому его будет труднее найти и применить для сканирования памяти.
 
+#### AES шифр
+
+Даже с нашими улучшениями шифр XOR крайне прост для взлома. Чтобы лучше защитить данные вашего приложения, понадобится шифр посложнее. WinAPI предоставляет ряд [криптографических функций](https://docs.microsoft.com/en-us/windows/win32/seccrypto/cryptography-functions). Среди них есть достаточно современный шифр AES. Попробуем применить его для нашего тестового приложения, как демонстрирует листинг 3-25.
+
+**Листинг 3-25.** *Защита данных приложения шифром AES*
+```C++
+#include <stdint.h>
+#include <stdio.h>
+#include <windows.h>
+#include <string>
+
+#pragma comment (lib, "advapi32")
+#pragma comment (lib, "user32")
+
+using namespace std;
+
+static const uint16_t MAX_LIFE = 20;
+static uint16_t gLife = 0;
+
+HCRYPTPROV hProv;
+HCRYPTKEY hKey;
+HCRYPTKEY hSessionKey;
+
+#define kAesBytes128 16
+
+typedef struct {
+    BLOBHEADER  header;
+    DWORD       key_length;
+    BYTE        key_bytes[kAesBytes128];
+} AesBlob128;
+
+static const BYTE gCipherBlockSize = kAesBytes128 * 2;
+static BYTE gCipherBlock[gCipherBlockSize] = {0};
+
+void CreateContex()
+{
+    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
+    {
+        printf("CryptAcquireContext() failed - error = 0x%x\n", GetLastError());
+    }
+}
+
+void CreateKey(string& key)
+{
+    AesBlob128 aes_blob;
+    aes_blob.header.bType = PLAINTEXTKEYBLOB;
+    aes_blob.header.bVersion = CUR_BLOB_VERSION;
+    aes_blob.header.reserved = 0;
+    aes_blob.header.aiKeyAlg = CALG_AES_128;
+    aes_blob.key_length = kAesBytes128;
+    memcpy(aes_blob.key_bytes, key.c_str(), kAesBytes128);
+
+    if (!CryptImportKey(hProv,
+                      reinterpret_cast<BYTE*>(&aes_blob),
+                      sizeof(AesBlob128),
+                      NULL,
+                      0,
+                      &hKey))
+    {
+        printf("CryptImportKey() failed - error = 0x%x\n", GetLastError());
+    }
+}
+
+void Encrypt()
+{
+    unsigned long length = kAesBytes128;
+    memset(gCipherBlock, 0, gCipherBlockSize);
+    memcpy(gCipherBlock, &gLife, sizeof(gLife));
+
+    if (!CryptEncrypt(hKey, 0, TRUE, 0, gCipherBlock, &length, gCipherBlockSize))
+    {
+        printf("CryptEncrypt() failed - error = 0x%x\n", GetLastError());
+        return;
+    }
+    gLife = 0;
+}
+
+void Decrypt()
+{
+    unsigned long length = gCipherBlockSize;
+
+    if (!CryptDecrypt(hKey, 0, TRUE, 0, gCipherBlock, &length))
+    {
+        printf("Error CryptDecrypt() failed - error = 0x%x\n", GetLastError());
+        return;
+    }
+    memcpy(&gLife, gCipherBlock, sizeof(gLife));
+    memset(gCipherBlock, 0, gCipherBlockSize);
+}
+
+int main(int argc, char* argv[])
+{
+    CreateContex();
+
+    string key("The secret key");
+
+    CreateKey(key);
+
+    gLife = MAX_LIFE;
+
+    Encrypt();
+
+    SHORT result = 0;
+
+    while (true)
+    {
+        result = GetAsyncKeyState(0x31);
+
+        Decrypt();
+
+        if (result != 0xFFFF8001)
+            gLife = gLife - 1;
+        else
+            gLife = gLife + 1;
+
+        printf("life = %u\n", gLife);
+
+        if (gLife == 0)
+            break;
+
+        Encrypt();
+
+        Sleep(1000);
+    }
+    printf("stop\n");
+    return 0;
+}
+```
+Алгоритм работы приложения следующий:
+
+1. Создать контекст для криптографического алгоритма с помощью функции `CreateContex`. Это обёртка над WinAPI функцией `CryptAcquireContext`. Контекст представляет собой комбинацию двух компонентов: **контейнер ключей** и **Cryptography Service Provider** (CSP) (криптопровайдер). Контейнер содержит все ключи, принадлежащие пользователю. CSP - это программный модуль, реализующий криптографический алгоритм.
+
+2. Добавить ключ шифрования в CSP с помощью функции `CreateKey`. Функция принимает в качестве входного параметра строку со значением ключа. Из неё создается структура BLOB (расшифровывается как Binary Large Object, т.е. двоичный большой объект). Эта структура передаётся в CSP с помощью WinAPI вызова `CryptImportKey`.
+
+3. Инициализировать переменную `gLife` и зашифровать её функцией `Encrypt`. Внутри себя она вызывает WinAPI функцию `CryptEncrypt`. Зашифрованное значение сохраняется в глобальномбайтовом массиве `gCipherBlock`. При этом значение переменной `gLife` зануляем, чтобы сканнер памяти не смог её найти.
+
+4. Перед каждым использованием переменной `gLife` расшифровываем её значение функцией `Decrypt`, которая вызывает внутри себя WinAPI функцию `CryptDecrypt`. После работы с `gLife` мы снова её шифруем.
+
+В чём преимущество шифра AES по сравнению с XOR? На самом деле алгоритм поиска зашифрованного значения в памяти одинаков в обоих случаях:
+
+1. Восстановить ключ шифрования.
+
+2. Применить ключ для шифровки текущего значения переменной.
+
+3. Искать зашифрованное значение в памяти процесса с помощью сканнера.
+
+XOR шифр работает намного быстрее, но его проще взломать. Для этого есть два варианта: перебор всех возможных ключей или поиск ключа в памяти процесса. В некоторых случаях первый подход будет быстрее и проще. Для шифра AES есть долько один вариант - поиск ключа в памяти. Чтобы взломать его перебором, понадобится значительное время. Поэтому надёжность защиты определяется только тем, насколько хорошо спрятан ключ. Надёжным решением может быть генерация нового ключа при каждом запуске приложения.
+
+У шифра AES есть еще одно достоинство. После восстановления ключа, необходимо точно повторить алгоритм шифрования. Только так возможно получить зашифрованное значение из того, что например отображается в окне игры. Шифр XOR настолько прост, что вы можете вычислить зашированное значение в уме. Но AES использует несколько этапов применения операций XOR и битового сдвига. Потребуется специальное приложение для выполнения шифрования, а это требует времени и знаний.
+
+Оба шифра XOR и AES скрывают данные приложения от сканирования. Если эти данные удастся найти, бот сможет их читать и писать без каких-либо проблем. В некоторых случаях это может оказаться достаточным для его работы.
+
+
+
+
+
 
