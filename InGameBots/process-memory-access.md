@@ -110,7 +110,7 @@ int main()
 
 2. Предоставляет маркеру доступа (переданному входным параметром) эту привилегию (указанную по LUID) через WinAPI функцию `AdjustTokenPrivileges`.
 
-Функция `SetPrivilege` более детально рассмотрена в [статье](msdn.microsoft.com/en-us/library/aa446619%28VS.85%29.aspx).
+Функция `SetPrivilege` более детально рассмотрена в [статье](https://docs.microsoft.com/en-us/windows/win32/secauthz/enabling-and-disabling-privileges-in-c--).
 
 Последнее действие в функции `main` – подключение к целевому процессу, дескриптор которого сохраняется в переменной `hTargetProc`. Для этого мы используем WinAPI функцию `OpenProcess`, в которую передаются права доступа `PROCESS_ALL_ACCESS` и PID процесса для подключения. Вся его память доступна теперь по дескриптору `hTargetProc`.
 
@@ -270,7 +270,7 @@ PTEB GetTeb()
 
 Почему `GetTeb` не может просто вернуть значение регистра FS? Ведь он должен указывать на TEB сегмент. Чтобы ответить на этот вопрос, рассмотрим, как в Windows происходит доступ к сегментам процесса.
 
-Большинство современных ОС использует [**защищённый режим процессора**](en.wikipedia.org/wiki/Protected_mode) (protected processor mode). В этом режиме [**адресация сегментов**](en.wikipedia.org/wiki/X86_memory_segmentation#Protected_mode) происходит через [**глобальную таблицу дескрипторов**](en.wikipedia.org/wiki/Global_Descriptor_Table) (Global Descriptor Table или GDT). В регистрах FS и GS хранится селектор, который является индексом записи в таблице дескрипторов. В этой записи находится базовый адрес сегмента TEB. Запрос к GDT по селектору выполняется аппаратным **блоком сегментации** (segmentation unit) процессора. Результат этого запроса временно хранится в процессоре и недоступен для приложений или ОС. Таким образом у Windows нет эффективного способа узнать базовый адрес сегмента TEB. Его можно прочитать из таблицы дескрипторов через WinAPI функции `GetThreadSelectorEntry` и `Wow64GetThreadSelectorEntry`, но этот способ неэффективен из-за накладных расходов. Именно поэтому в TEB сегменте хранится его собственный базовый адрес.
+Большинство современных ОС использует [**защищённый режим процессора**](https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D1%89%D0%B8%D1%89%D1%91%D0%BD%D0%BD%D1%8B%D0%B9_%D1%80%D0%B5%D0%B6%D0%B8%D0%BC) (protected processor mode). В этом режиме [**адресация сегментов**](https://en.wikipedia.org/wiki/X86_memory_segmentation#Protected_mode) происходит через [**глобальную таблицу дескрипторов**](https://en.wikipedia.org/wiki/Global_Descriptor_Table) (Global Descriptor Table или GDT). В регистрах FS и GS хранится селектор, который является индексом записи в таблице дескрипторов. В этой записи находится базовый адрес сегмента TEB. Запрос к GDT по селектору выполняется аппаратным **блоком сегментации** (segmentation unit) процессора. Результат этого запроса временно хранится в процессоре и недоступен для приложений или ОС. Таким образом у Windows нет эффективного способа узнать базовый адрес сегмента TEB. Его можно прочитать из таблицы дескрипторов через WinAPI функции `GetThreadSelectorEntry` и `Wow64GetThreadSelectorEntry`, но этот способ неэффективен из-за накладных расходов. Именно поэтому в TEB сегменте хранится его собственный базовый адрес.
 
 Пример использования функции `GetThreadSelectorEntry` приведён в следующем [обсуждении](https://reverseengineering.stackexchange.com/questions/3139/how-can-i-find-the-thread-local-storage-tls-of-a-windows-process-thread) на форуме.
 
