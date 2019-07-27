@@ -17,3 +17,6 @@
     * [Доступ к памяти процесса](InGameBots/process-memory-access.md)
     * [Пример бота для Diablo 2](InGameBots/example.md)
     * [Методы защиты от внутриигровых ботов](InGameBots/protection.md)
+* [Внеигровые боты](OutGameBots/README.md)
+    * [Инструменты для разработки](OutGameBots/tools.md)
+    * [Сетевые протоколы](OutGameBots/network-protocols.md)
