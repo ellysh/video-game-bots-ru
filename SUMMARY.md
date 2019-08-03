@@ -20,3 +20,4 @@
 * [Внеигровые боты](OutGameBots/README.md)
     * [Инструменты для разработки](OutGameBots/tools.md)
     * [Сетевые протоколы](OutGameBots/network-protocols.md)
+    * [Перехват трафика](OutGameBots/packet-analysis.md)
