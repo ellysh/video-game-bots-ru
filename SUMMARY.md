@@ -21,3 +21,4 @@
     * [Инструменты для разработки](OutGameBots/tools.md)
     * [Сетевые протоколы](OutGameBots/network-protocols.md)
     * [Перехват трафика](OutGameBots/packet-analysis.md)
+    * [Пример бота для NetChess](OutGameBots/example.md)
