@@ -447,7 +447,7 @@ PTEB GetTeb()
 | `sizeof(...)` | Размер структуры с результатом функции. В нашем случае – это размер `threadInfo`. |
 | `NULL` | Указатель на переменную, которая равна числу байт, записанных в структуру с результатом (`threadInfo`). |
 
-Чтобы прочитать структуру типа `THREAD_BASIC_INFORMATION` для заданного потока, мы должны передать в функцию `NtQueryInformationThread` константу `ThreadBasicInformation` перечисления `THREADINFOCLASS`. К сожалению, эта константа не документирована. Кроме того она не опеделена в заголовочном файле `winternl.h`. В нём есть только константа `ThreadIsIoPending`.
+Чтобы прочитать структуру типа `THREAD_BASIC_INFORMATION` для заданного потока, мы должны передать в функцию `NtQueryInformationThread` константу `ThreadBasicInformation` перечисления `THREADINFOCLASS`. К сожалению, эта константа не документирована. Кроме того, она не опеделена в заголовочном файле `winternl.h`. В нём есть только константа `ThreadIsIoPending`.
 
 Чтобы использовать недокументированную константу, её над определить самостоятельно. Для этого определим новое перечисление типа `THREADINFOCLASS2`, которое содержит `ThreadBasicInformation`. Подробнее об этой константе, вы можете узнать в [неофициальной докуметации](http://undocumented.ntinternals.net/index.html?page=UserMode/Undocumented%20Functions/NT%20Objects/Thread/THREAD_INFORMATION_CLASS.html).
 
