@@ -328,4 +328,96 @@ if __name__ == '__main__':
 
 Вы можете использовать шифр 3DES в своих приложениях только в том случае, когда на это есть серьёзные причины (например аппаратная поддержка со стороны используемого оборудования). Сегодня он не считается достаточно надёжным. Теоретические варианты атаки на шифр рассмотрены в этой [статье](https://habr.com/ru/post/239287). Кроме того, современные шифры работают быстрее 3DES.
 
+## Шифр AES
 
+В 1998 году два бельгийских криптографа Винсент Рэймен и Йоан Даймен создали шифр AES. Он заменил DES и его вариации в качестве криптографического стандарта США.
+
+В AES были решены проблемы шифра DES. Прежде всего он позволяет использовать длинные секретные ключи (128, 192 и 256 бит). Такая возможность появилась потому, что в AES длины блоков и ключа могут различаться. Можно выбрать любую допустимую длину ключа, и это не вызовет накладных расходов алгоритма шифрования, как в случае 3DES. Отсутствие накладных расходов на шифрование - одна из причин высокой скорости работы AES.
+
+Обе библиотеки PyCrypto и PyCryptodome предоставляют шифр AES. Интерфейс для его использования похож на 3DES.
+
+Листинг 4-15 демонстрирует применение AES для шифрования и дешифрования строки.
+
+**Листинг 4-15.** *Скрипт `AesTest.py`*
+```Python
+from Crypto.Cipher import AES
+from Crypto import Random
+
+def main():
+  key = b"The secret key a"
+  iv = Random.new().read(AES.block_size)
+
+  # Encryption
+  encryption_suite = AES.new(key, AES.MODE_CBC, iv)
+  cipher_text = encryption_suite.encrypt(b"Hello world!    ")
+  print(cipher_text)
+
+  # Decryption
+  decryption_suite = AES.new(key, AES.MODE_CBC, iv)
+  plain_text = decryption_suite.decrypt(cipher_text)
+  print(plain_text)
+
+if __name__ == '__main__':
+  main()
+```
+Сравните скрипты `AesTest.py` и `3DesTest.py`. Они очень похожи. Функция `new` модуля `AES` создаёт объект `encryption_suite` класса `AESCipher`. У неё те же три входных параметра, что и в случае 3DES: секретный ключ, режим сцепления блоков, IV. AES поддерживает те же режимы сцепления блоков, что и 3DES.
+
+После запуска скрипта `AesTest.py`, в консоли напечатаются следующие строки:
+```
+b'\xed\xd5\x19]\x04\xba\xc5\x05^s\x18t\xa3\xb59x'
+b'Hello world!    '
+```
+Нам опять пришлось дополнить открытый текст проблеами, до длины кратной восьми байтов. Это требование режима сцепления блоков `AES.MODE_CBC`.
+
+Листинг 4-16 демонстрирует скрипт `AesUdpSender.py`, который шифрует сообщение алгоритмом AES и отправляет его.
+
+**Листинг 4-16.** *Скрипт `AesUdpSender.py`*
+```Python
+import socket
+from Crypto.Cipher import AES
+from Crypto import Random
+
+def main():
+  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+  s.bind(("127.0.0.1", 24001))
+
+  key = b"The secret key a"
+  iv = Random.new().read(AES.block_size)
+  encryption_suite = AES.new(key, AES.MODE_CBC, iv)
+  cipher_text = iv + encryption_suite.encrypt(b"Hello world!    ")
+
+  s.sendto(cipher_text, ("127.0.0.1", 24000))
+  s.close()
+
+if __name__ == '__main__':
+  main()
+```
+Здесь мы отправляем IV в начале данных пакета точно так же, как и в скрипте `3DesUdpSender.py` (листинг 4-13). Алгоритм шифрования и отправки пакета такой же, как при использовании 3DES.
+
+Скрипт `AesUdpReceiver.py` из листинга 4-17 получает и дешифрует сообщение.
+
+**Листинг 4-17.** *Скрипт `AesUdpReceiver.py`*
+```Python
+import socket
+from Crypto.Cipher import AES
+
+def main():
+  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+  s.bind(("127.0.0.1", 24000))
+  data, addr = s.recvfrom(1024, socket.MSG_WAITALL)
+
+  key = b"The secret key a"
+  decryption_suite = AES.new(key, AES.MODE_CBC, data[0:AES.block_size])
+  plain_text = decryption_suite.decrypt(data[AES.block_size:])
+  print(plain_text)
+
+  s.close()
+
+if __name__ == '__main__':
+  main()
+```
+Скрипт получателя работает по тому же алгоритму, что и `3DesUdpReceiver.py` из листинга 4-14.
+
+Попробуйте запустить скрипты отправителя и получателя, чтобы проверить корректность их работы.
+
+Если в вашем приложении возможно использовать [**симметричный шифр**](https://ru.wikipedia.org/wiki/Симметричные_криптосистемы), всегда выбирайте AES вместо 3DES.
