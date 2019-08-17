@@ -448,9 +448,135 @@ if __name__ == '__main__':
 
 **Листинг 4-18.** *Скрипт `RsaTest.py`*
 ```Python
+from Crypto.PublicKey import RSA
+from Crypto import Random
+
+def main():
+  key = RSA.generate(1024, Random.new().read)
+
+  # Encryption
+  cipher_text = key.encrypt(b"Hello world!", 32)
+  print(cipher_text)
+
+  # Decryption
+  plain_text = key.decrypt(cipher_text)
+  print(plain_text)
+
+if __name__ == '__main__':
+  main()
 ```
 
 ---
 Скрипт `RsaTest.py` не заработает, если вы используете библиотеку PyCryptodome.
 ---
-В скрипте мы импортируем два Python модуля `Random` и `RSA`. Первый из них нам уже известен. Второй предоставляет функции для генерации и применения 
+В скрипте мы импортируем два Python модуля `Random` и `RSA`. Первый из них нам уже известен. Второй предоставляет функции для генерации и применения открытого и закрытого ключа.
+
+Сначала мы создаём объекта `key` класса `_RSAobj` с помощью функции `generate` модуля `RSA`. Этот объект содержит пару ключей (открытый и закрытый). Первый параметр функции обязательный. Он задаёт длину ключей (в нашем случае 1024 бита). Второй параметр опциональный. В нём передаётся функция генерации случайных чисел.
+
+После создания объекта `key` мы вызываем его методы `encrypt` и `decrypt` для шифрования и дешифрования текста.
+
+Может возникнуть вопрос: где применяются открытый и закрытый ключи в нашем примере? Ведь явно они нигде в коде не упоминаются. На самом деле шифрование и дешифрование происходит в одном и том же процессе, поэтому нет необходимости в передаче открытого ключа. Если это необходимо, объект `key` предоставляет методы для экспорта и импорта ключей.
+
+В листинге 4-18 мы рассмотрели использование шифра RSA в отдельности. В таком виде он уязвим для [**атаки на основе подобранного открытого текста**](https://ru.wikipedia.org/wiki/Атака_на_основе_подобранного_открытого_текста) (chosen-plaintext attack или CPA). Поэтому RSA всегда используют в комбинации со [**схемой дополнения OAEP**](https://ru.wikipedia.org/wiki/Оптимальное_асимметричное_шифрование_с_дополнением) (Optimal Asymmetric Encryption Padding), которая предотвращает эту уязвимость. Такая комбинация шифра и схемы дополнения известна как RSA-OAEP.
+
+Листинг 4-19 демонстрирует использование RSA-OAEP алгоритма для шифрования строки.
+
+**Листинг 4-19.** *Скрипт `RsaOaepTest.py`*
+```Python
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto import Random
+
+def main():
+  key = RSA.generate(1024, Random.new().read)
+
+  # Encryption
+  encryption_suite = PKCS1_OAEP.new(key)
+  cipher_text = encryption_suite.encrypt(b"Hello world!")
+  print(cipher_text)
+
+  # Decryption
+  decryption_suite = PKCS1_OAEP.new(key)
+  plain_text = decryption_suite.decrypt(cipher_text)
+  print(plain_text)
+
+if __name__ == '__main__':
+  main()
+```
+Теперь для шифрования и дешифрования мы используем не `key`, а объекты класса `PKCS1OAEP_Cipher` из модуля `PKCS1_OAEP`. Он конструируется функцией `new`, которая принимает входным параметром объект класса `_RSAobj` (то есть RSA ключи). Для шифрования и дешифрования используются два разных OAEP объекта: `encryption_suite` и `decryption_suite`.
+
+Применим RSA-OAEP шифр для нашего тестового приложения, отправляющего UDP пакет по сети. Прежде всего необходимо изменить его алгоритм. В случае симметричного шифрования он тривиален: зашифровать открытый текст, передать его в пакете, расшифровать на стороне получателя. При применении ассиметричного шифра появляется дополнительный шаг: передача открытого ключа отправителю сообщения. Ведь с помощью него и будет происходит шифрование.
+
+Рассмотрим пошагово новый алгоритм тестовго приложения:
+
+1. Скрипт отправителя сообщения запускается первым. Он создаёт UDP сокет и ожидает получения открытого ключа.
+
+2. Скрипт получателя запускается. Он создаёт UDP сокет. Затем генерирует пару ключей.
+
+3. Получатель сообщения посылает свой открытый ключ.
+
+4. Отправитель читает ключ из пришедшего UDP пакета и использует его для шифрования открытого текста по алгоритму RSA-OAEP.
+
+5. Отправитель посылает шифротекст с сообщением.
+
+6. Получатель принимает шифротекст и дешифрует его, используя свою пару ключей.
+
+Листинг 4-20 демонстрирует скрипт, отправляющий сообщение.
+
+**Листинг 4-20.** *Скрипт `RsaUdpSender.py`*
+```Python
+import socket
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+
+def main():
+  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+  s.bind(("127.0.0.1", 24001))
+
+  public_key, addr = s.recvfrom(1024, socket.MSG_WAITALL)
+
+  key = RSA.importKey(public_key)
+  cipher = PKCS1_OAEP.new(key)
+
+  cipher_text = cipher.encrypt(b"Hello world!")
+
+  s.sendto(cipher_text, ("127.0.0.1", 24000))
+  s.close()
+
+if __name__ == '__main__':
+  main()
+```
+В этом скрипте мы используем функцию `importKey` модуля `RSA`. Она конструирует объект класса `_RSAobj`, содержащий только открытый ключ. Этого объекта будет достаточно для шифрования, но не для дешифрования. На входе `importKey` принимает ключ в формате байтового массива, который мы получаем из UDP пакета. Переменная `key` используется для конструировании объекта `cipher` класса `PKCS1OAEP_Cipher`. С его помощью мы шифруем сообщение и отправляем его получателю.
+
+Скрипт, получающий сообщение, приведён в листинге 4-21.
+
+**Листинг 4-21.** *Скрипт `RsaUdpReceiver.py`*
+```Python
+import socket
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto import Random
+
+def main():
+  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+  s.bind(("127.0.0.1", 24000))
+
+  key = RSA.generate(1024, Random.new().read)
+  public_key = key.publickey().exportKey()
+
+  s.sendto(public_key, ("127.0.0.1", 24001))
+
+  data, addr = s.recvfrom(1024, socket.MSG_WAITALL)
+
+  cipher = PKCS1_OAEP.new(key)
+  plain_text = cipher.decrypt(data)
+  print(plain_text)
+
+  s.close()
+
+if __name__ == '__main__':
+  main()
+```
+
+
+
