@@ -1,8 +1,5 @@
-# Extra Techniques
+# Специальные техники
 
-We will consider advanced approaches for game bots development in this chapter. All of them are used to avoid protection systems, which block clicker and in-game types of bots. First approach is to emulate the standart keyboard and mouse devices. Second approch is to intercept calls of game application to the Windows API libraries.
+В этой главе мы рассмотрим специальные техники разработки игровых ботов. Они позволяют обойти некоторые виды защит от кликеров и внутриигровых ботов.
 
-This is list of sections in the chapter:
-
-* [Input Device Emulation](input-device-emulation.md)
-* [OS Level Interception Data](os-level-interception-data.md)
+Сначала мы рассмотрим эмуляцию стандартных устройств ввода: клавиатуры и мыши. Затем перейдём к более сложной технике перехвата вызовов процесса игрового приложения к WinAPI библиотекам.
