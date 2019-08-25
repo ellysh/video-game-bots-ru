@@ -23,3 +23,5 @@
     * [Перехват трафика](OutGameBots/packet-analysis.md)
     * [Пример бота для NetChess](OutGameBots/example.md)
     * [Методы защиты от внеигровых ботов](OutGameBots/protection.md)
+* [Специальные техники](ExtraTechniques/README.md)
+    * [Эмуляция устройств ввода](ExtraTechniques/input-device-emulation.md)
