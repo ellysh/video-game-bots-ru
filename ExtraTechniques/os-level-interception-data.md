@@ -18,7 +18,7 @@
 
 Для установке Deviare выполните следующее:
 
-1. Скачайте [архив](http://github.com/nektra/Deviare2/releases/download/v2.8.0/Deviare.2.8.0.zip) с уже собранным в исполняемые файлы фреймворком.
+1. Скачайте [архив](http://github.com/nektra/Deviare2/releases/download/v2.8.0/Deviare.2.8.0.zip) с уже собранными исполняемыми файлами и библиотеками фреймворка.
 
 2. Скачайте [архив](http://github.com/nektra/Deviare2/archive/v2.8.0.zip) с исходным кодом той же версии.
 
@@ -375,3 +375,107 @@ Session Manager\ExcludeFromKnownDlls
 3. Эта техника работает ненадёжно с многопоточными приложениям. Причина заключается в том, что вызовы модифицированной WinAPI функции никак не синхронизированы. Если её вызывает один поток (при этом первая инструкция функци ивосстанавливается), то её вызов вторым потоком не будет перехвачен.
 
 ### Пример модификации WinAPI
+
+Разработаем бота, который использует технику модификации WinAPI. Он будет работать по такому же алгоритму, что и бот использующий технику proxy DLL: симулировать нажатие кнопки "1", если значение `gLife` опустится ниже 10. Для разработки мы воспользуемся фреймворком Deviare.
+
+Для начала немного познакомимся с фреймворком и его возможностями. В архиве с ним распространяется несколько демонстрационных примеров. Один из них под названием **CTest** перехватывает WinAPI вызовы и записывает информацию о них в текствоый файл. В этом примере реализована загрузка DLL библиотеки с обработчиками вызовов в память целевого процесса и алгоритм модификации WinAPI функций.
+
+Попробуем запустить пример CTest и наше тестовое приложение. Для этого выполните следующие действия:
+
+1. Скачайте [архив](http://github.com/nektra/Deviare2/releases/download/v2.8.0/Deviare.2.8.0.zip) с уже собранными исполняемыми файлами и библиотеками фреймворка. Распакуйте архив в каталог с именем `deviare-bin`.
+
+2. Скопируйте файл `TestApplication.exe` в каталог `deviare-bin`.
+
+3. Откройте для редактирования конфигурационный файл `ctest.hooks.xml` из каталога `deviare-bin`. В нём указаны WinAPI вызовы, которые будут перехвачены. Добавьте в этот список функцию `TextOutA` в следующем виде:
+```
+<hook name="TextOutA">gdi32.dll!TextOutA</hook>
+```
+
+4. В командной строке запустите пример `CTest` со следующими параметрами:
+```
+CTest.exe exec TestApplication.exe -log=out.txt
+```
+
+Рассмотрим параметры командной строки теста `CTest.exe`. Первый из них `exec TestApplication.exe` указывает целевое приложение, которое следует запустить. После запуска в память его процесса будет загружена DLL библиотека с обработчиками вызовов. Второй параметр `-log=out.txt` указывает текстовый файл для вывода информации о перехваченных вызовах.
+
+После запуска теста откроются два окна: CTest и TestApplication. Когда значение переменной `gLife` достигнет нуля в окне TestApplication, остановите выполнение теста CTest нажатием Ctrl+C в его окне.
+
+Откройте лог файл `out.txt` и найдите в нём следующие строчки:
+```
+CNktDvEngine::CreateHook (gdi32.dll!TextOutA) => 00000000
+...
+21442072: Hook state change [2500]: gdi32.dll!TextOutA -> Activating
+...
+21442306: LoadLibrary [2500]: C:\Windows\System32\gdi32.dll / Mod=00000003
+...
+21442852: Hook state change [2500]: gdi32.dll!TextOutA -> Active
+```
+Они означают, что пример CTest успешно модифицировал WinAPI функцию `TextOutA` модуля `gdi32.dll` в памяти тестового приложения. Прокрутите лог файл дальше. Вы найдёте информациб о каждом перехваченном вызове `TextOutA` в следующем виде:
+```
+21442852: Hook called [2500/2816 - 1]: gdi32.dll!TextOutA (PreCall)
+     [KT:15.600100ms / UT:0.000000ms / CC:42258224]
+21442852:   Parameters:
+              HDC hdc [0x002DFA60] "1795229328" (unsigned dword)
+              long x [0x002DFA64] "0" (signed dword)
+              long y [0x002DFA68] "0" (signed dword)
+              LPCSTR lpString [0x002DFA6C] "#" (ansi-string)
+              long c [0x002DFA70] "19" (signed dword)
+21442852:   Custom parameters:
+21442852:   Stack trace:
+21442852:     1) TestApplication.exe + 0x00014A91
+21442852:     2) TestApplication.exe + 0x0001537E
+21442852:     3) TestApplication.exe + 0x000151E0
+21442852:     4) TestApplication.exe + 0x0001507D
+```
+Как вы видите CTest, извлекает полную информацию о типах и значениях параметров перехваченных функций. Также мы получили точное время перехвата и [трассировку стека](https://en.wikipedia.org/wiki/Stack_trace). Благодаря трассровке можно определить, из какого места тестового приложения был сделан каждый вызов. Это может быть полезно, если нам нужно перехватывать только некоторые из них.
+
+Функциональности, которую предоставляет CTest, полностью достаточно для нашего бота. Единственное, что нам осталось - это добавить алгоритм бота в код теста. Для этого выполните следующие действия:
+
+1. Откройте в Visual Studio файл проекта теста CTest. Его можно найти в [архиве](http://github.com/nektra/Deviare2/archive/v2.8.0.zip) с исходным кодом Deviare по пути `Samples\C\Test\CTest.sln`
+
+2. Откройте файл `MySpyMgr.cpp`, который содержит код обработки перехваченных функций.
+
+3. В открытом файле найдите метод обработчика `CMySpyMgr::OnFunctionCalled`. Он вызывается перед тем, как управление будет передано в WinAPI функцию. Сейчас из этого метода вызывается функция `LogPrint` для вывода информации в лог файл.
+
+4. Перед методом `CMySpyMgr::OnFunctionCalled` добавьте функцию `ProcessParam` из листинга 5-12, реализующую алгоритм бота.
+
+**Листинг 5-12.** *Алгоритм бота в функции `ProcessParam`*
+```C++
+VOID ProcessParam(__in Deviare2::INktParam *lpParam)
+{
+    CComBSTR cBstrTypeName, cBstrName;
+    lpParam->get_Name(&cBstrName);
+
+    unsigned long val = 0;
+    HRESULT hRes = lpParam->get_ULongVal(&val);
+    if (FAILED(hRes))
+        return;
+
+    wprintf(L"ProcessParam() - name = %s value = %u\n", (BSTR)cBstrName, (unsigned int)(val));
+
+    if (val < 10)
+    {
+        INPUT Input = { 0 };
+        Input.type = INPUT_KEYBOARD;
+        Input.ki.wVk = '1';
+        SendInput( 1, &Input, sizeof( INPUT ) );
+    }
+}
+```
+
+5. В метод `CMySpyMgr::OnFunctionCalled` добавьте вызов функции `ProcessParam`. Найдите следующую строчку:
+```C+++
+    if (sCmdLineParams.bAsyncCallbacks == FALSE &&
+        SUCCEEDED(callInfo->Params(&cParameters)))
+    {
+        LogPrint(L"  Parameters:\n");
+```
+Замените её на:
+```C++
+if (sCmdLineParams.bAsyncCallbacks == FALSE &&
+    SUCCEEDED(callInfo->Params(&cParameters)))
+{
+    if (SUCCEEDED(cParameters->GetAt(4, &cParam)))
+        ProcessParam(cParam);
+    LogPrint(L"  Parameters:\n");
+```
