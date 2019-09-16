@@ -8,7 +8,8 @@
 
 ## Ссылки
 
-* [Читать книгу онлайн](SUMMARY.md)
+* [Читать книгу онлайн на GitHub](SUMMARY.md)
+* [Читать книгу онлайн на GitBook](https://ellysh.gitbook.io/video-game-bots-ru)
 * [Скачать в формате PDF](https://legacy.gitbook.com/download/pdf/book/ellysh/video-game-bots-ru)
 * [Исходный код примеров](https://github.com/ellysh/practical-video-game-bots)
 * [Связь с автором](mailto:petrsum@gmail.com)
