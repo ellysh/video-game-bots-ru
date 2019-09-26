@@ -10,8 +10,8 @@
 
 * [Читать книгу онлайн на GitHub](SUMMARY.md)
 * [Читать книгу онлайн на GitBook](https://ellysh.gitbook.io/video-game-bots-ru)
-* [Скачать в формате PDF](video-game-bots-ru.pdf)
-* [Скачать в формате Mobi](video-game-bots-ru.mobi)
-* [Скачать в формате ePub](video-game-bots-ru.epub)
+* [Скачать в формате PDF](https://legacy.gitbook.com/download/pdf/book/johntitor/video-game-bots-ru)
+* [Скачать в формате Mobi](https://legacy.gitbook.com/download/mobi/book/johntitor/video-game-bots-ru)
+* [Скачать в формате ePub](https://legacy.gitbook.com/download/epub/book/johntitor/video-game-bots-ru)
 * [Исходный код примеров](https://github.com/ellysh/practical-video-game-bots)
 * [Связь с автором](mailto:petrsum@gmail.com)
