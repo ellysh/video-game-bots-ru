@@ -1,5 +1,9 @@
 {
     "plugins": ["autocover"],
+    "language": "ru",
+    "structure": {
+        "readme": "foreword.md"
+    },
     "pluginsConfig": {
         "autocover": {
             "title": "Боты для компьютерных игр",
