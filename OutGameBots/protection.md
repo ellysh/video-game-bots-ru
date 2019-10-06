@@ -26,7 +26,7 @@
 
 Для демонстрации алгоритмов шифрования воспользуемся простым приложением, которое передаёт текстовое сообщение по протоколу UDP. Мы использовали это приложение в разделе "Перехват трафика" (см. листинги 4-3 и 4-4). Немного изменим скрипт отправителя, чтобы вместо трёх байт отправлялась строка "Hello world!".
 
-***Листинг 4-7.** Скрипт `TestStringUdpSender.py`*
+_**Листинг 4-7.** Скрипт `TestStringUdpSender.py`_
 ```Python
 import socket
 
@@ -52,7 +52,7 @@ b'Hello world!'
 
 ![Перехваченный пакет](Figure_4-22.png)
 
-***Иллюстрация 4-22.** Перехваченный пакет тестового приложения*
+_**Иллюстрация 4-22.** Перехваченный пакет тестового приложения_
 
 Wireshark корректно декодировал строку "Hello world!". Мы можем её прочитать в нижней части окна анализатора в области байтового представления пакета.
 
@@ -68,7 +68,7 @@ Wireshark корректно декодировал строку "Hello world!".
 
 Листинг 4-8 демонстрирует использование шифра XOR, предоставляемого библиотекой PyCrypto.
 
-***Листинг 4-8.** Скрипт `XorTest.py`*
+_**Листинг 4-8.** Скрипт `XorTest.py`_
 ```Python
 from Crypto.Cipher import XOR
 
@@ -100,7 +100,7 @@ b'\x1c\r\tL\x1cE\x14\x1d\x17\x18DJ'
 
 Теперь применим шифр XOR для скриптов отправки и получения UDP пакета нашего тестового приложения. Листинг 4-9 демонстрирует дополненный скрипт отправителя.
 
-***Листинг 4-9.** Скрипт `XorUdpSender.py`*
+_**Листинг 4-9.** Скрипт `XorUdpSender.py`_
 ```Python
 import socket
 from Crypto.Cipher import XOR
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
 Скрипт получателя приведён в листинге 4-10.
 
-***Листинг 4-10.** Скрипт `XorUdpReceiver.py`*
+_**Листинг 4-10.** Скрипт `XorUdpReceiver.py`_
 ```Python
 import socket
 from Crypto.Cipher import XOR
@@ -151,7 +151,7 @@ b'Hello world!'
 
 ![Пакет зашифрованный XOR](Figure_4-23.png)
 
-***Иллюстрация 4-23.** Перехваченный пакет, который был зашифрован XOR*
+_**Иллюстрация 4-23.** Перехваченный пакет, который был зашифрован XOR_
 
 Обратите внимание, что теперь Wireshark не может декодировать строку. Вы можете сделать это вручную, но только если вам известен секретный ключ.
 
@@ -167,7 +167,7 @@ A ⊕ B = K
 ```
 Это означает, что можно восстановить секретный ключ, если известны открытый текст и шифротекст. Скрипт `XorCrack.py` из листинга 4-11 восстанавливает ключ по рассмотренному алгоритму.
 
-***Листинг 4-11.** Скрипт `XorCrack.py`*
+_**Листинг 4-11.** Скрипт `XorCrack.py`_
 ```Python
 from Crypto.Cipher import XOR
 
@@ -220,7 +220,7 @@ b'The secret k'
 
 Листинг 4-12 демонстрирует скрипт для шифрования и дешифрования строки с помощью 3DES.
 
-***Листинг 4-12.** Скрипт `3DesTest.py`*
+_**Листинг 4-12.** Скрипт `3DesTest.py`_
 ```Python
 from Crypto.Cipher import DES3
 from Crypto import Random
@@ -275,7 +275,7 @@ b'Hello world!    '
 
 Теперь дополним скрипты отправки и приёма UDP сообщения так, чтобы они использовали 3DES шифр. Листинг 4-13 демонстрирует код отправителя.
 
-***Листинг 4-13.** Скрипт `3DesUdpSender.py`*
+_**Листинг 4-13.** Скрипт `3DesUdpSender.py`_
 ```Python
 import socket
 from Crypto.Cipher import DES3
@@ -302,7 +302,7 @@ if __name__ == '__main__':
 
 Листинг 4-14 демонстрирует реализацию скрипта получателя.
 
-***Листинг 4-14.** Скрипт `3DesUdpReceiver.py`*
+_**Листинг 4-14.** Скрипт `3DesUdpReceiver.py`_
 ```Python
 import socket
 from Crypto.Cipher import DES3
@@ -338,7 +338,7 @@ if __name__ == '__main__':
 
 Листинг 4-15 демонстрирует применение AES для шифрования и дешифрования строки.
 
-***Листинг 4-15.** Скрипт `AesTest.py`*
+_**Листинг 4-15.** Скрипт `AesTest.py`_
 ```Python
 from Crypto.Cipher import AES
 from Crypto import Random
@@ -371,7 +371,7 @@ b'Hello world!    '
 
 Листинг 4-16 демонстрирует скрипт `AesUdpSender.py`, который шифрует сообщение алгоритмом AES и отправляет его.
 
-***Листинг 4-16.** Скрипт `AesUdpSender.py`*
+_**Листинг 4-16.** Скрипт `AesUdpSender.py`_
 ```Python
 import socket
 from Crypto.Cipher import AES
@@ -396,7 +396,7 @@ if __name__ == '__main__':
 
 Скрипт `AesUdpReceiver.py` из листинга 4-17 получает и дешифрует сообщение.
 
-***Листинг 4-17.** Скрипт `AesUdpReceiver.py`*
+_**Листинг 4-17.** Скрипт `AesUdpReceiver.py`_
 ```Python
 import socket
 from Crypto.Cipher import AES
@@ -446,7 +446,7 @@ if __name__ == '__main__':
 
 Листинг 4-18 демонстрирует использование RSA для шифрования и дешифрования строки.
 
-***Листинг 4-18.** Скрипт `RsaTest.py`*
+_**Листинг 4-18.** Скрипт `RsaTest.py`_
 ```Python
 from Crypto.PublicKey import RSA
 from Crypto import Random
@@ -481,7 +481,7 @@ if __name__ == '__main__':
 
 Листинг 4-19 демонстрирует использование RSA-OAEP алгоритма для шифрования строки.
 
-***Листинг 4-19.** Скрипт `RsaOaepTest.py`*
+_**Листинг 4-19.** Скрипт `RsaOaepTest.py`_
 ```Python
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
@@ -523,7 +523,7 @@ if __name__ == '__main__':
 
 Листинг 4-20 демонстрирует скрипт, отправляющий сообщение.
 
-***Листинг 4-20.** Скрипт `RsaUdpSender.py`*
+_**Листинг 4-20.** Скрипт `RsaUdpSender.py`_
 ```Python
 import socket
 from Crypto.PublicKey import RSA
@@ -550,7 +550,7 @@ if __name__ == '__main__':
 
 Скрипт, получающий сообщение, приведён в листинге 4-21.
 
-***Листинг 4-21.** Скрипт `RsaUdpReceiver.py`*
+_**Листинг 4-21.** Скрипт `RsaUdpReceiver.py`_
 ```Python
 import socket
 from Crypto.PublicKey import RSA
