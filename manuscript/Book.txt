@@ -19,7 +19,7 @@ ClickerBots/protection.md
 InGameBots/README.md
 InGameBots/tools.md
 InGameBots/process-memory-analysis.md
-InGameBots/process-memory-access.m
+InGameBots/process-memory-access.md
 InGameBots/example.md
 InGameBots/protection.md
 
