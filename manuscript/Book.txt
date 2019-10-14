@@ -5,33 +5,33 @@ foreword.md
 {mainmatter}
 
 BotsClassification/README.md
-  BotsClassification/purpose-of-bots.md
-  BotsClassification/game-application.md
-  BotsClassification/types-of-bots.md
+BotsClassification/purpose-of-bots.md
+BotsClassification/game-application.md
+BotsClassification/types-of-bots.md
 
 ClickerBots/README.md
-  ClickerBots/tools.md
-  ClickerBots/os-level-embedding-data.md
-  ClickerBots/output-device-capture.md
-  ClickerBots/example.md
-  ClickerBots/protection.md
+ClickerBots/tools.md
+ClickerBots/os-level-embedding-data.md
+ClickerBots/output-device-capture.md
+ClickerBots/example.md
+ClickerBots/protection.md
 
 InGameBots/README.md
-  InGameBots/tools.md
-  InGameBots/process-memory-analysis.md
-  InGameBots/process-memory-access.md
-  InGameBots/example.md
-  InGameBots/protection.md
+InGameBots/tools.md
+InGameBots/process-memory-analysis.md
+InGameBots/process-memory-access.md
+InGameBots/example.md
+InGameBots/protection.md
 
 OutGameBots/README.md
-  OutGameBots/tools.md
-  OutGameBots/network-protocols.md
-  OutGameBots/packet-analysis.md
-  OutGameBots/example.md
-  OutGameBots/protection.md
+OutGameBots/tools.md
+OutGameBots/network-protocols.md
+OutGameBots/packet-analysis.md
+OutGameBots/example.md
+OutGameBots/protection.md
 
 ExtraTechniques/README.md
-  ExtraTechniques/input-device-emulation.md
-  ExtraTechniques/os-level-interception-data.md
+ExtraTechniques/input-device-emulation.md
+ExtraTechniques/os-level-interception-data.md
 
 {backmatter}
