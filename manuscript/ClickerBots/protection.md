@@ -424,7 +424,7 @@ C:\Program Files (x86)\AutoHotkey\Compiler\Ahk2Exe.exe
 
 4. Нажмите кнопку "> Convert <". После окончания процесса компиляции вы увидите сообщение.
 
-![Компилятор AutoHotKey](ahk2exe.png)
+![Компилятор AutoHotKey](images/ClickerBots/ahk2exe.png)
 
 _**Иллюстрация 2-14.** Окно компилятора AutoHotKey_
 
@@ -536,7 +536,7 @@ wend
 
 7. Нажмите F4 и выберите вариант "Yes" в диалоге подтверждения сохранения изменений.
 
-![HT Editor](ht-editor.png)
+![HT Editor](images/ClickerBots/ht-editor.png)
 
 _**Иллюстрация 2-15.** Изменение времени создания файла в HT editor_
 

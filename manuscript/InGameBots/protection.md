@@ -92,7 +92,7 @@ MOV AX,WORD PTR DS:[gLife]
 ```
 Позиция курсора должна совпадать с иллюстрацией 3-24.
 
-![Test Application main](test-application-ollydbg.png)
+![Test Application main](images/InGameBots/test-application-ollydbg.png)
 
 _**Иллюстрация 3-24.** Точка останова в `main` функции_
 
@@ -102,7 +102,7 @@ _**Иллюстрация 3-24.** Точка останова в `main` функ
 
 9. Найдите сегмент в котором находится переменная `gLife`. Им окажется `.data` модуля TestApplication, как на иллюстрации 3-25.
 
-![Test Application сегмент .data](testapp-segment-ollydbg.png)
+![Test Application сегмент .data](images/InGameBots/testapp-segment-ollydbg.png)
 
 _**Иллюстрация 3-25.** Сегменты модуля TestApplication_
 
@@ -294,7 +294,7 @@ int main()
 
 10. Нажмите F9, чтобы приложение работало дальше.
 
-![Изменение регистра EAX](register-modify-ollydbg.png)
+![Изменение регистра EAX](images/InGameBots/register-modify-ollydbg.png)
 
 _**Иллюстрация 3-26.** Изменение значения регистра EAX_
 
@@ -314,7 +314,7 @@ _**Иллюстрация 3-26.** Изменение значения регис
 
 5. Нажмите F9, чтобы продолжить работу тестового приложения.
 
-![Редактирование кода](byte-hack-ollydbg.png)
+![Редактирование кода](images/InGameBots/byte-hack-ollydbg.png)
 
 _**Иллюстрация 3-27.** Диалог редактирования инструкции_
 
@@ -496,7 +496,7 @@ int main(int argc, char* argv[])
 ```
 Иллюстрация 3-28 демонстрирует взаимодействие родительского и дочернего процессов.
 
-![Взаимодействие процессов](self-debugging.png)
+![Взаимодействие процессов](images/InGameBots/self-debugging.png)
 
 _**Иллюстрация 3-28.** Взаимодействие родительского и дочернего процессов_
 
@@ -550,7 +550,7 @@ TestApplication.exe x
 
 В окне дизассемблера OllyDbg вы увидите код как на иллюстрации 3-29.
 
-![Код IsDebuggerPresent](is-debugger-present.png)
+![Код IsDebuggerPresent](images/InGameBots/is-debugger-present.png)
 
 _**Иллюстрация 3-29.** Инструкции функции `IsDebuggerPresent`_
 
@@ -716,7 +716,7 @@ exit(EXIT_FAILURE); \
 
 6. Измените значение поля "HEX+01" с "01" на "00" и нажмите кнопку "OK", как изображено на иллюстрации 3-30.
 
-![Редактирование флага BeingDebugged](beingdebugged-ollydbg.png)
+![Редактирование флага BeingDebugged](images/InGameBots/beingdebugged-ollydbg.png)
 
 _**Иллюстрация 3-30.** Диалог редактирования флага "BeingDebugged"_
 
