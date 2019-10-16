@@ -24,7 +24,7 @@
 
 1. Скачайте [архив с настройкой](https://github.com/Deniskore/windbg-workspace).
 
-2. Распакуйте полученный архив `windbg-workspace-master.zip` в папку `themes` (темы) отладчика. Путь к ней по умолчанию:<br/>
+2. Распакуйте полученный архив `windbg-workspace-master.zip` в папку `themes` (темы) отладчика. Путь к ней по умолчанию:
 `C:\Program Files (x86)\Windows Kits\8.1\Debuggers\x64\themes`.
 
 3. Среди скопированных файлов найдите и запустите `windbg.reg`. Затем нажмите кнопку "Yes" в диалоге подтверждения.
