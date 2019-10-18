@@ -1,8 +1,6 @@
-frontmatter:
+mainmatter:
 
   foreword.md
-
-mainmatter:
 
   BotsClassification/README.md
   BotsClassification/purpose-of-bots.md
