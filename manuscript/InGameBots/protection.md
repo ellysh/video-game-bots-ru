@@ -362,7 +362,7 @@ C:\Program Files (x86)\odbg200
 
 В интерфейсе WinAPI есть ещё одна функция для проверки подключенного отладчика – `CheckRemoteDebuggerPresent`. Она позволяет обнаружить отладчик, подключённый к указанному процессу. `CheckRemoteDebuggerPresent` может быть полезна, если система защиты и игра работают в разных процессах.
 
-Обе функции `CheckRemoteDebuggerPresent` и `IsDebuggerPresent` проверяют данные PEB сегмента. `CheckRemoteDebuggerPresent` вызывает внутри себя WinAPI функцию `NtQueryInformationProcess`, которая возвращает структуру типа [`PROCESS_BASIC_INFORMATION`](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess). Её второе поле – это указатель на структуру типа [`PEB`](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-_peb). У `PEB` есть поле под названием `BeingDebugged`, значение которого равно 1, если к процессу подключен отладчик. Иначе значение поля равно 0.
+Обе функции `CheckRemoteDebuggerPresent` и `IsDebuggerPresent` проверяют данные PEB сегмента. `CheckRemoteDebuggerPresent` вызывает внутри себя WinAPI функцию `NtQueryInformationProcess`, которая возвращает структуру типа [`PROCESS_BASIC_INFORMATION`](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess). Её второе поле – это указатель на структуру типа [`PEB`](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb). У `PEB` есть поле под названием `BeingDebugged`, значение которого равно 1, если к процессу подключен отладчик. Иначе значение поля равно 0.
 
 ##### CloseHandle
 
