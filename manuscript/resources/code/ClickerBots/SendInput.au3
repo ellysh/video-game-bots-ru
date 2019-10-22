@@ -11,7 +11,7 @@ Const $tagKEYBDINPUT = _
     'dword dwFlags;' & _
     'dword time;' & _
     'ulong_ptr dwExtraInfo'
-    
+
 Const $tagINPUT = _
     'dword type;' & _
     $tagKEYBDINPUT & _
