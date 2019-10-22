@@ -4,4 +4,4 @@ while $checkSum = PixelChecksum(0, 0, 50, 50)
     Sleep(100)
 wend
 
-MsgBox(0, "", "Something in the region has changed!")
+MsgBox(0, "", "Изображение в области экрана изменилось")

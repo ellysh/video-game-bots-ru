@@ -1,3 +1,3 @@
 $hWnd = WinGetHandle("[CLASS:MSPaintApp]")
 $color = PixelGetColor(200, 200, $hWnd)
-MsgBox(0, "", "The hex color is: " & Hex($color, 6))
+MsgBox(0, "", "Цвет пикселя: " & Hex($color, 6))
