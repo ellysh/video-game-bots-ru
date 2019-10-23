@@ -20,22 +20,9 @@
 
 Листинг 2-28 демонстрирует скрипт `SimpleBot.au3`, который печатает буквы "a", "b", "c" в окне Notepad.
 
-_**Листинг 2-28.** Скрипт `SimpleBot.au3`_
-```AutoIt
-$hWnd = WinGetHandle("[CLASS:Notepad]")
-WinActivate($hWnd)
+{caption: "Листинг 2-28. Скрипт `SimpleBot.au3`", format: AutoIt}
+![`SimpleBot.au3`](code/ClickerBots/SimpleBot.au3)
 
-Sleep(200)
-
-while True
-    Send("a")
-    Sleep(1000)
-    Send("b")
-    Sleep(2000)
-    Send("c")
-    Sleep(1500)
-wend
-```
 Для тестирования запустите Notepad, а затем скрипт `SimpleBot.au3`. Он переключится на нужное окно и будет вводить буквы в бесконечном цикле.
 
 Скрипт `SimpleBot.au3` служит отправной точкой нашего исследования. Его цель в том, чтобы отличить симулируемые ботом нажатия клавиш от действий пользователя в окне Notepad. Прототипы алгоритмов защиты мы будем писать на AutoIt. Благодаря этому получится простой и компактный код для изучения. В реальных системах защиты предпочтительнее использовать компилируемые языки вроде C или C++.
@@ -52,33 +39,9 @@ I> Скорость реакции среднестатистического ч
 
 Наш скрипт защиты должен выполнять две задачи: перехватывать действия пользователя и измерять временные задержки между ними. Код в листинге 2-29 реализует перехват нажатия клавиш.
 
-_**Листинг 2-29.** Перехват нажатия клавиш_
-```AutoIt
-global const $gKeyHandler = "_KeyHandler"
+{caption: "Листинг 2-29. Перехват нажатия клавиш", format: AutoIt}
+![`KeyHandler.au3`](code/ClickerBots/KeyHandler.au3)
 
-func _KeyHandler()
-    $keyPressed = @HotKeyPressed
-
-    LogWrite("_KeyHandler() - asc = " & asc($keyPressed) & " key = " & $keyPressed)
-    AnalyzeKey($keyPressed)
-
-    HotKeySet($keyPressed)
-    Send($keyPressed)
-    HotKeySet($keyPressed, $gKeyHandler)
-endfunc
-
-func InitKeyHooks($handler)
-    for $i = 0 to 255
-        HotKeySet(Chr($i), $handler)
-    next
-endfunc
-
-InitKeyHooks($gKeyHandler)
-
-while true
-    Sleep(10)
-wend
-```
 Мы применили функцию AutoIt `HotKeySet`, чтобы назначить [**обработчик**](https://ru.wikipedia.org/wiki/Событие_(объектно-ориентированное_программирование)) (handler или hook) для нажатий клавиш. Она принимает на вход два параметра: код перехватываемой клавиши и ссылку на функцию-обработчик. Чтобы пройти по всем кодам от 0 до 255, в пользовательской функции `InitKeyHooks` используется цикл `for`. Обработчик `_KeyHandler` назначается для всех клавиш. Алгоритм его работы выглядит следующим образом:
 
 1. Вызвать функцию `AnalyzeKey` и передать ей код нажатой клавиши. Этот код хранится в макросе `@HotKeyPressed`.
@@ -91,36 +54,9 @@ wend
 
 Листинг 2-30 демонстрирует код функции `AnalyzeKey`.
 
-_**Листинг 2-30.** Функция `AnalyzeKey`_
-```AutoIt
-global $gTimeSpanA = -1
-global $gPrevTimestampA = -1
+{caption: "Листинг 2-30. Функция `AnalyzeKey`", format: AutoIt}
+![`AnalyzeKey.au3`](code/ClickerBots/AnalyzeKey.au3)
 
-func AnalyzeKey($key)
-    local $timestamp = (@SEC * 1000 + @MSEC)
-    LogWrite("AnalyzeKey() - key = " & $key & " msec = " & $timestamp)
-    if $key <> 'a' then
-        return
-    endif
-
-    if $gPrevTimestampA = -1 then
-        $gPrevTimestampA = $timestamp
-        return
-    endif
-
-    local $newTimeSpan = $timestamp - $gPrevTimestampA
-    $gPrevTimestampA = $timestamp
-
-    if $gTimeSpanA = -1 then
-        $gTimeSpanA = $newTimeSpan
-        return
-    endif
-
-    if Abs($gTimeSpanA - $newTimeSpan) < 100 then
-        MsgBox(0, "Alert", "Clicker bot detected!")
-    endif
-endfunc
-```
 В функции `AnalyzeKey` мы измеряем задержки между нажатиями клавиши "a". Две глобальные переменные хранят текущее состояние алгоритма:
 
 1. `gPrevTimestampA` – это момент времени (timestamp) первого нажатия.
@@ -154,103 +90,25 @@ endfunc
 
 Полный код защиты представлен в скрипте `TimeSpanProtection.au3` из листинга 2-31. В нём мы опустили реализацию функций `_KeyHandler` и `AnalyzeKey`, поскольку рассмотрели их ранее.
 
-_**Листинг 2-31.** Скрипт `TimeSpanProtection.au3`_
-```AutoIt
-global const $gKeyHandler = "_KeyHandler"
-global const $kLogFile = "debug.log"
-
-global $gTimeSpanA = -1
-global $gPrevTimestampA = -1
-
-func LogWrite($data)
-    FileWrite($kLogFile, $data & chr(10))
-endfunc
-
-func _KeyHandler()
-    ; См листинг 2-29
-endfunc
-
-func InitKeyHooks($handler)
-    for $i = 0 to 256
-        HotKeySet(Chr($i), $handler)
-    next
-endfunc
-
-func AnalyzeKey($key)
-    ; См листинг 2-30
-endfunc
-
-InitKeyHooks($gKeyHandler)
-
-while true
-    Sleep(10)
-wend
-```
+{caption: "Листинг 2-31. Скрипт `TimeSpanProtection.au3`", format: AutoIt}
+![`TimeSpanProtection.au3`](code/ClickerBots/TimeSpanProtection.au3)
 
 #### Анализ последовательности действий
 
 Мы можем незначительно изменить скрипт `SimpleBot.au3`, чтобы обойти защиту `TimeSpanProtection.au3`. Для этого заменим фиксированные задержки между действиями на случайные. Листинг 2-32 демонстрирует исправленную версию бота.
 
-_**Листинг 2-32.** Скрипт `RandomDelayBot.au3`_
-```AutoIt
-SRandom(@MSEC)
+{caption: "Листинг 2-32. Скрипт `RandomDelayBot.au3`", format: AutoIt}
+![`RandomDelayBot.au3`](code/ClickerBots/RandomDelayBot.au3)
 
-$hWnd = WinGetHandle("[CLASS:Notepad]")
-WinActivate($hWnd)
-
-Sleep(200)
-
-while true
-    Send("a")
-    Sleep(Random(800, 1200))
-    Send("b")
-    Sleep(Random(1700, 2300))
-    Send("c")
-    Sleep(Random(1300, 1700))
-wend
-```
 Каждый раз, в вызов `Sleep` мы передаём случайное число, полученное из функции `Random`. Попробуйте протестировать нового бота вместе с защитой `TimeSpanProtection.au3`. Теперь она не обнаружит кликера. Можем ли мы её улучшить?
 
 У скрипта `RandomDelayBot.au3` по-прежнему есть закономерность, которая сразу видна человеку, следящему за его работой. Речь идёт о последовательности нажимаемых кнопок. Очевидно, что игрок не способен безошибочно повторять свои действия десятки и сотни раз. Даже если он и захочет это сделать, в какой-то момент он ошибётся и нажмёт не ту клавишу.
 
 Перепишем скрипт защиты так, чтобы вместо временных задержек он анализировал последовательность нажатий клавиш. Для этого надо изменить функцию `AnalyzeKey`, как показано в листинге 2-33.
 
-_**Листинг 2-33.** Функция `AnalyzeKey`_
-```AutoIt
-global const $gActionTemplate[3] = ['a', 'b', 'c']
-global $gActionIndex = 0
-global $gCounter = 0
+{caption: "Листинг 2-33. Функция `AnalyzeKey`", format: AutoIt}
+![`AnalyzeActions.au3`](code/ClickerBots/AnalyzeActions.au3)
 
-func Reset()
-    $gActionIndex = 0
-    $gCounter = 0
-endfunc
-
-func AnalyzeKey($key)
-    LogWrite("AnalyzeKey() - key = " & $key);
-
-    $indexMax = UBound($gActionTemplate) - 1
-    if $gActionIndex <= $indexMax and $key <> $gActionTemplate[$gActionIndex] then
-        Reset()
-        return
-    endif
-
-    if $gActionIndex < $indexMax and $key = $gActionTemplate[$gActionIndex] then
-        $gActionIndex += 1
-        return
-    endif
-
-    if $gActionIndex = $indexMax and $key = $gActionTemplate[$gActionIndex] then
-        $gCounter += 1
-        $gActionIndex = 0
-
-        if $gCounter = 3 then
-            MsgBox(0, "Alert", "Clicker bot detected!")
-            Reset()
-        endif
-    endif
-endfunc
-```
 Новый вариант функции `AnalyzeKey` использует глобальную константу и две переменные:
 
 1. `gActionTemplate` – это массив с последовательностью действий, которую выполняет предполагаемый бот.
@@ -307,27 +165,9 @@ then
 
 Изменим нашего бота согласно листингу 2-34. Это позволит ему обойти защиту `ActionSequenceProtection.au3`.
 
-_**Листинг 2-34.** Скрипт `RandomActionBot.au3`_
-```AutoIt
-SRandom(@MSEC)
+{caption: "Листинг 2-34. Скрипт `RandomActionBot.au3`", format: AutoIt}
+![`RandomActionBot.au3`](code/ClickerBots/RandomActionBot.au3)
 
-$hWnd = WinGetHandle("[CLASS:Notepad]")
-WinActivate($hWnd)
-Sleep(200)
-
-while true
-    Send("a")
-    Sleep(1000)
-
-    if Random(0, 9, 1) < 5 then
-        Send("b")
-        Sleep(2000)
-    endif
-
-    Send("c")
-    Sleep(1500)
-wend
-```
 Теперь симулируемая ботом последовательность действий случайна. Он пропускает нажатие клавиши "b" после "a" с вероятностью порядка 50%. Это приводит к тому, что условия функции `AnalyzeKey` на обнаружение бота перестают выполняться. Каждый раз, когда бот пропускает "b", алгоритм защиты сбрасывает счётчик `gCounter` в ноль. Таким образом, он никогда не достигает порогового значения.
 
 Мы можем обнаружить бота `RandomActionBot.au3`, если немного изменим защитный алгоритм. Вместо проверки нажатий клавиш "на лету", он должен записывать их в один большой файл. Когда этот файл достигнет максимально допустимого размера, скрипт должен его прочитать и проверить на наличие часто повторяющихся последовательностей действий. Если они встречаются, это может быть сигналом о том, что их выполняет программа. В случае бота `RandomActionBot.au3`, такими последовательностями будут:
@@ -342,28 +182,9 @@ wend
 
 Скрипт `ProcessScanProtection.au3`, приведённый в листинге 2-35, демонстрирует этот подход.
 
-_**Листинг 2-35.** Скрипт `ProcessScanProtection.au3`_
-```AutoIt
-global const $kLogFile = "debug.log"
+{caption: "Листинг 2-35. Скрипт `ProcessScanProtection.au3`", format: AutoIt}
+![`ProcessScanProtection.au3`](code/ClickerBots/ProcessScanProtection.au3)
 
-func LogWrite($data)
-    FileWrite($kLogFile, $data & chr(10))
-endfunc
-
-func ScanProcess($name)
-    local $processList = ProcessList($name)
-
-    if $processList[0][0] > 0 then
-        LogWrite("Name: " & $processList[1][0] & " PID: " & $processList[1][1])
-        MsgBox(0, "Alert", "Clicker bot detected!")
-    endif
-endfunc
-
-while true
-    ScanProcess("AutoHotKey.exe")
-    Sleep(5000)
-wend
-```
 Мы можем получить список запущенных в данный момент процессов с помощью AutoIt функции `ProcessList`. У неё есть единственный необязательный параметр: имя процесса, который нужно найти. Если его передать, функция вернёт список из одного элемента в случае успешного поиска. Предположим, что защита ищет процесс [**интерпретатора**](https://ru.wikipedia.org/wiki/Интерпретатор) `AutoHotKey.exe`, который выполняет скрипт бота. `ProcessList` возвращает двумерный массив, представленный в таблице 2-8.
 
 _**Таблица 2-8.** Элементы массива, возвращаемого `ProcessList`_
@@ -380,21 +201,9 @@ _**Таблица 2-8.** Элементы массива, возвращаемо
 
 Перепишем нашего тестового бота на языке AutoHotKey. Результат приведён в листинге 2-36.
 
-_**Листинг 2-36.** Скрипт `SimpleBot.ahk`_
-```AutoIt
-WinActivate, Untitled - Notepad
-Sleep, 200
+{caption: "Листинг 2-36. Скрипт `SimpleBot.ahk`", format: AutoIt}
+![`SimpleBot.ahk`](code/ClickerBots/SimpleBot.ahk)
 
-while true
-{
-    Send, a
-    Sleep, 1000
-    Send, b
-    Sleep, 2000
-    Send, c
-    Sleep, 1500
-}
-```
 Вы можете сравнить скрипты `SimpleBot.ahk` и `SimpleBot.au3`. Они выглядят похоже. Единственное отличие заключается в синтаксисе вызова функций. В AutoHotKey параметры указываются не в скобках, а через запятую и пробел после имени функции.
 
 Теперь мы можем протестировать скрипт защиты `ProcessScanProtection.au3`. Для этого выполните следующие шаги:
@@ -442,58 +251,9 @@ _**Иллюстрация 2-14.** Окно компилятора AutoHotKey_
 
 Попробуем реализовать первый подход. Скрипт `Md5ScanProtection.au3` из листинга 2-37 считает хэш-сумму по алгоритму MD5 для исполняемого файла каждого из запущенных процессов. Если она совпала с искомой, алгоритм делает вывод о наличии работающего бота.
 
-_**Листинг 2-37.** Скрипт `Md5ScanProtection.au3`_
-```AutoIt
-#include <Crypt.au3>
+{caption: "Листинг 2-37. Скрипт `Md5ScanProtection.au3`", format: AutoIt}
+![`Md5ScanProtection.au3`](code/ClickerBots/Md5ScanProtection.au3)
 
-global const $kLogFile = "debug.log"
-global const $kCheckMd5[2] = ["0x3E4539E7A04472610D68B32D31BF714B", _
- "0xD960F13A44D3BD8F262DF625F5705A63"]
-
-func LogWrite($data)
-    FileWrite($kLogFile, $data & chr(10))
-endfunc
-
-func _ProcessGetLocation($pid)
-    local $proc = DllCall('kernel32.dll', 'hwnd', 'OpenProcess', 'int', _
-                          BitOR(0x0400, 0x0010), 'int', 0, 'int', $pid)
-    if $proc[0] = 0 then 
-        return ""
-    endif
-    local $struct = DllStructCreate('int[1024]')
-    DllCall('psapi.dll', 'int', 'EnumProcessModules', 'hwnd', $proc[0], 'ptr', _
-            DllStructGetPtr($struct), 'int', DllStructGetSize($struct), 'int_ptr', 0)
-
-    local $return = DllCall('psapi.dll', 'int', 'GetModuleFileNameEx', 'hwnd', _
-                            $proc[0], 'int', DllStructGetData($struct, 1), 'str', _
-                            '', 'int', 2048)
-    if StringLen($return[3]) = 0 then
-        return ""
-    endif
-    return $return[3]
-endfunc
-
-func ScanProcess()
-    local $processList = ProcessList()
-    for $i = 1 to $processList[0][0]
-        local $path = _ProcessGetLocation($processList[$i][1])
-        local $md5 = _Crypt_HashFile($path, $CALG_MD5)
-        LogWrite("Name: " & $processList[$i][0] & " PID: " _
-                       & $processList[$i][1] & " Path: " & $path & " md5: " & $md5)
-
-        for $j = 0 to Ubound($kCheckMd5) - 1
-            if $md5 == $kCheckMd5[$j] then
-                MsgBox(0, "Alert", "Clicker bot detected!")
-            endif
-        next
-    next
-endfunc
-
-while true
-    ScanProcess()
-    Sleep(5000)
-wend
-```
 Рассмотрим скрипт `Md5ScanProtection.au3` подробнее. Весь алгоритм обнаружения бота реализован в функции `ScanProcess`, которая вызывается в цикле `while` каждые пять секунд. В ней читается список запущенных процессов с помощью AutoIt-вызова `ProcessList`. Его результат сохраняется в переменную `processList`. После этого цикл `for` проходит по полученному списку. Для каждого его элемента функция `_ProcessGetLocation` читает путь к исполняемому файлу, машинный код которого был загружен в память процесса. Полученный путь передаётся в AutoIt-функцию `_Crypt_HashFile`, которая считает хэш-сумму по содержимому всего файла. На заключительном шаге алгоритма происходит сравнение рассчитанной хэш-суммы с искомыми значениями из глобального массива `kCheckMd5`. В нашем примере этот массив содержит MD5-суммы файлов `SimpleBot.exe` и `AutoHotKey.exe`.
 
 Рассмотрим функцию `_ProcessGetLocation`. В ней происходит три WinAPI-вызова через AutoIt обёртку `DllCall`: 
@@ -552,48 +312,9 @@ Windows предоставляет механизм уровня ядра, ко�
 
 Скрипт `KeyboardCheckProtection.au3` из листинга 2-38 демонстрирует проверку флага `LLKHF_INJECTED`.
 
-_**Листинг 2-38.** Скрипт `KeyboardCheckProtection.au3`_
-```AutoIt
-#include <WinAPI.au3>
+{caption: "Листинг 2-38. Скрипт `KeyboardCheckProtection.au3`", format: AutoIt}
+![`KeyboardCheckProtection.au3`](code/ClickerBots/KeyboardCheckProtection.au3)
 
-global const $kLogFile = "debug.log"
-global $gHook
-
-func LogWrite($data)
-    FileWrite($kLogFile, $data & chr(10))
-endfunc
-
-func _KeyHandler($nCode, $wParam, $lParam)
-    if $nCode < 0 then
-        return _WinAPI_CallNextHookEx($gHook, $nCode, $wParam, $lParam)
-    endIf
-
-    local $keyHooks = DllStructCreate($tagKBDLLHOOKSTRUCT, $lParam)
-
-    LogWrite("_KeyHandler() - keyccode = " & DllStructGetData($keyHooks, "vkCode"));
-
-    local $flags = DllStructGetData($keyHooks, "flags")
-    if $flags = $LLKHF_INJECTED then
-        MsgBox(0, "Alert", "Clicker bot detected!")
-    endif
-
-    return _WinAPI_CallNextHookEx($gHook, $nCode, $wParam, $lParam)
-endfunc
-
-func InitKeyHooks($handler)
-    local $keyHandler = DllCallbackRegister($handler, "long", _
-                                         "int;wparam;lparam")
-    local $hMod = _WinAPI_GetModuleHandle(0)
-    $gHook = _WinAPI_SetWindowsHookEx($WH_KEYBOARD_LL, _
-                        DllCallbackGetPtr($keyHandler), $hMod)
-endfunc
-
-InitKeyHooks("_KeyHandler")
-
-while true
-    Sleep(10)
-wend
-```
 Алгоритм назначения обработчика нажатий клавиш похож на тот, который мы применяли в скриптах `TimeSpanProtection.au3` и `ActionSequenceProtection.au3`. Только в данном случае мы делаем вызов WinAPI через AutoIt-обёртку `_WinAPI_SetWindowsHookEx` в функции `InitKeyHooks`. Таким образом мы инициализируем обработчик `_KeyHandler`, который будет перехватывать все события клавиатуры.
 
 Функция `InitKeyHooks` выполняет следующие шаги:
@@ -641,19 +362,9 @@ wend
 
 Скрипт `VirtualMachineBot.au3` из листинга 2-39 представляет адаптированную версию нашего бота.
 
-_**Листинг 2-39.** Скрипт `VirtualMachineBot.au3`_
-```AutoIt
-Sleep(2000)
+{caption: "Листинг 2-39. Скрипт `VirtualMachineBot.au3`", format: AutoIt}
+![`VirtualMachineBot.au3`](code/ClickerBots/VirtualMachineBot.au3)
 
-while true
-    Send("a")
-    Sleep(1000)
-    Send("b")
-    Sleep(2000)
-    Send("c")
-    Sleep(1500)
-wend
-```
 Скрипт `VirtualMachineBot.au3` отличается от `SimpleBot.au3` процедурой переключения на окно Notepad. Теперь бот не может самостоятельно его найти, поскольку Notepad запущен на гостевой ОС. Мы добавили двухсекундную задержку после старта скрипта, чтобы у вас было время переключиться на окно VM и Notepad внутри неё. Алгоритм защиты `KeyboardCheckProtection.au3` не сможет обнаружить скрипт `VirtualMachineBot.au3`.
 
 ### Выводы

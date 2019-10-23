@@ -8,7 +8,7 @@
 
 ## Ссылки
 
-* [Читать или скачать на Leanpub](https://leanpub.com/video-game-bots-leanpub)
+* [Читать или скачать на Leanpub](https://leanpub.com/video-game-bots)
 * [Исходный код примеров](https://github.com/ellysh/practical-video-game-bots)
 * [Связь с автором](mailto:petrsum@gmail.com)
 
