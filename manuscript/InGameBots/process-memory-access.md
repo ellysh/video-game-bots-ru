@@ -32,68 +32,9 @@ Windows отвечает за распределение своих ресурс
 
 Листинг 3-1 демонстрирует код приложения, которое подключается к процессу с заданным PID.
 
-_**Листинг 3-1.** Приложение `OpenProcess.cpp`_
-```C++
-#include <windows.h>
-#include <stdio.h>
+{caption: "Листинг 3-1. Приложение `OpenProcess.cpp`", format: C++}
+![`OpenProcess.cpp`](code/InGameBots/OpenProcess.cpp)
 
-BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)
-{
-    TOKEN_PRIVILEGES tp;
-    LUID luid;
-    if (!LookupPrivilegeValue(NULL, lpszPrivilege, &luid))
-
-    {
-        printf("LookupPrivilegeValue error: %u\n", GetLastError());
-        return FALSE;
-    }
-
-    tp.PrivilegeCount = 1;
-    tp.Privileges[0].Luid = luid;
-
-    if (bEnablePrivilege)
-        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    else
-        tp.Privileges[0].Attributes = 0;
-
-    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES),
-                               (PTOKEN_PRIVILEGES)NULL, (PDWORD)NULL))
-    {
-        printf("AdjustTokenPrivileges error: %u\n", GetLastError());
-        return FALSE;
-    }
-
-    if (GetLastError() == ERROR_NOT_ALL_ASSIGNED)
-    {
-        printf("The token does not have the specified privilege. \n");
-        return FALSE;
-    }
-    return TRUE;
-}
-
-int main()
-{
-    HANDLE hProc = GetCurrentProcess();
-    HANDLE hToken = NULL;
-
-    if (!OpenProcessToken(hProc, TOKEN_ADJUST_PRIVILEGES, &hToken))
-        printf("Failed to open access token\n");
-
-    if (!SetPrivilege(hToken, SE_DEBUG_NAME, TRUE))
-        printf("Failed to set debug privilege\n");
-
-    DWORD pid = 1804;
-
-    HANDLE hTargetProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    if (hTargetProc)
-        printf("Target process handle = %p\n", hTargetProc);
-    else
-        printf("Failed to open process: %u\n", GetLastError());
-
-    CloseHandle(hTargetProc);
-    return 0;
-}
-```
 Приложение из листинга 3-1 подключается к процессу с PID равным 1804. Вам нужно заменить его на PID работающего в данный момент процесса. Узнать идентификаторы всех запущенных процессов можно с помощью приложения Task Manager (диспетчер задач). Укажите PID целевого процесса в следующей строке файла `OpenProcess.cpp`:
 ```C++
     DWORD pid = 1804;
@@ -122,60 +63,9 @@ WinAPI функция `ReadProcessMemory` читает данные из ука�
 
 Тестовое приложение, приведённое в листинге 3-2, записывает шестнадцатеричное значение DEADBEEF по некоторому абсолютному адресу памяти целевого процесса. Затем по этому же адресу происходит чтение. Если запись была успешной, мы прочитаем то же самое значение DEADBEEF.
 
-_**Листинг 3-2.** Приложение `ReadWriteProcessMemory.cpp`_
-```C++
-#include <stdio.h>
-#include <windows.h>
+{caption: "Листинг 3-2. Приложение `ReadWriteProcessMemory.cpp`", format: C++}
+![`ReadWriteProcessMemory.cpp`](code/InGameBots/ReadWriteProcessMemory.cpp)
 
-BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)
-{
-    // Смотрите реализацию этой функции в листинге 3-1
-}
-
-DWORD ReadDword(HANDLE hProc, DWORD_PTR address)
-{
-    DWORD result = 0;
-
-    if (ReadProcessMemory(hProc, (void*)address, &result, sizeof(result), NULL) == 0)
-    {
-        printf("Failed to read memory: %u\n", GetLastError());
-    }
-    return result;
-}
-
-void WriteDword(HANDLE hProc, DWORD_PTR address, DWORD value)
-{
-    if (WriteProcessMemory(hProc, (void*)address, &value, sizeof(value), NULL) == 0)
-    {
-        printf("Failed to write memory: %u\n", GetLastError());
-    }
-}
-
-int main()
-{
-    HANDLE hProc = GetCurrentProcess();
-
-    HANDLE hToken = NULL;
-    if (!OpenProcessToken(hProc, TOKEN_ADJUST_PRIVILEGES, &hToken))
-        printf("Failed to open access token\n");
-
-    if (!SetPrivilege(hToken, SE_DEBUG_NAME, TRUE))
-        printf("Failed to set debug privilege\n");
-
-    DWORD pid = 5356;
-    HANDLE hTargetProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    if (!hTargetProc)
-        printf("Failed to open process: %u\n", GetLastError());
-
-    DWORD_PTR address = 0x001E0000;
-    WriteDword(hTargetProc, address, 0xDEADBEEF);
-    printf("Result of reading dword at 0x%llx address = 0x%x\n", address,
-           ReadDword(hTargetProc, address));
-
-    CloseHandle(hTargetProc);
-    return 0;
-}
-```
 Абсолютный адрес 001E0000 для записи значения DEADBEEF выбран произвольно. Эту область памяти занимает какой-то сегмент. Операция записи данных в него может привести к аварийному завершению целевого процесса. Поэтому в качестве него
 не используйте важные системные службы Windows. Лучше всего для нашего теста подойдёт приложение Notepad.
 
@@ -237,21 +127,9 @@ _**Таблица 3-4.** Параметры функций `WriteProcessMemory` 
 
 Самый простой и прямолинейный метод – воспользоваться регистром FS процессора на x86 архитектуре или регистром GS на архитектуре x64. Вообще, процессор предоставляет ОС решать, как использовать эти регистры. Windows хранит в них указатель на TEB сегмент потока, который исполняется в данный момент. Листинг 3-3 демонстрирует чтение регистра FS.
 
-_**Листинг 3-3.** Функция `GetTeb`_
-```C++
-#include <winternl.h>
+{caption: "Листинг 3-3. Функция `GetTeb`", format: C++}
+![`GetTeb.cpp`](code/InGameBots/GetTeb.cpp)
 
-PTEB GetTeb()
-{
-    PTEB pTeb;
-
-    __asm {
-        mov EAX, FS:[0x18]
-        mov pTeb, EAX
-    }
-    return pTeb;
-}
-```
 В функции `GetTeb` используются [**ассемблерные вставки**](https://ru.wikipedia.org/wiki/Ассемблерная_вставка). Эта возможность C++ позволяет добавлять в программу код на языке ассемблера, каждая команда которого соответствует одной инструкции процессора. Другими словами мы спускаемся на самый нижний уровень и оперируем элементарными действиями процессора.
 
 Рассмотрим код `GetTeb` подробнее. Функция начинается с выделения памяти на стеке для локальной переменной `pTeb` типа `PTEB`. Согласно WinAPI документации, тип `PTEB` – это указатель на структуру, содержащую все данные сегмента TEB. Далее идёт блок с двумя командами на языке ассемблера:
@@ -296,21 +174,9 @@ typedef struct _TEB {
 
 Листинг 3-4 демонстрирует функцию `GetTeb`, переписанную для поддержки обеих архитектур: x86 и x64.
 
-_**Листинг 3-4.** Функция `GetTeb` для архитектур x86 и x64_
-```C++
-#include <windows.h>
-#include <winternl.h>
+{caption: "Листинг 3-4. Функция `GetTeb` для архитектур x86 и x64", format: C++}
+![`GetTebCrossPlatform.cpp`](code/InGameBots/GetTebCrossPlatform.cpp)
 
-PTEB GetTeb()
-{
-#if defined(_M_X64) // x64
-    PTEB pTeb = reinterpret_cast<PTEB>(__readgsqword(0x30));
-#else // x86
-    PTEB pTeb = reinterpret_cast<PTEB>(__readfsdword(0x18));
-#endif
-    return pTeb;
-}
-```
 В новом варианте `GetTeb` используется директива условной компиляции [**препроцессора**](https://ru.wikipedia.org/wiki/Препроцессор_Си). С её помощью перед компиляцией выбирается подходящая реализация функции. Если макрос `_M_X64` определён, значит целевая архитектура приложения 64-разрядная. В этом случае вызывается встроенная функция компилятора `__readgsqword`, которая читает 64-битное значение со смещением 0x30 от базового адреса сегмента TEB (на него указывает регистр GS через селектор). Для 32-разрядной архитектуры вызывается встроенная функция `__readfsdword`, которая читает 32-битное значение со смещением 0x18 от базового адреса сегмента TEB (на него указывает регистр FS).
 
 Новая реализация функции `GetTeb` может вызвать вопрос: почему поле структуры TEB с базовым адресом сегмента имеет разные смещения для x86 и x64 архитектур? Чтобы ответить на него, рассмотрим определение структуры `NT_TIB`, которая используется для представления части TEB, независимой от версии Windows:
@@ -333,23 +199,9 @@ typedef struct _NT_TIB {
 
 Вместо того чтобы указывать смещения явно, мы можем использовать информацию о них из структуры `NT_TIB`. Листинг 3-5 демонстрирует это решение.
 
-_**Листинг 3-5.** Универсальная версия функции `GetTeb`_
-```C++
-#include <windows.h>
-#include <winternl.h>
+{caption: "Листинг 3-5. Универсальная версия функции `GetTeb`", format: C++}
+![`GetTebUniversal.cpp`](code/InGameBots/GetTebUniversal.cpp)
 
-PTEB GetTeb()
-{
-#if defined(_M_X64) // x64
-    PTEB pTeb = reinterpret_cast<PTEB>(__readgsqword(reinterpret_cast<DWORD>(
-                                       &static_cast<PNT_TIB>(nullptr)->Self)));
-#else // x86
-    PTEB pTeb = reinterpret_cast<PTEB>(__readfsdword(reinterpret_cast<DWORD>(
-                                       &static_cast<PNT_TIB>(nullptr)->Self)));
-#endif
-    return pTeb;
-}
-```
 Эта реализация функции `GetTeb` заимствована из [статьи](https://www.autoitscript.com/forum/topic/164693-implementation-of-a-standalone-teb-and-peb-read-method-for-the-simulation-of-getmodulehandle-and-getprocaddress-functions-for-loaded-pe-module). В ней используются уже знакомые нам встроенные функции компилятора `__readgsqword` и `__readfsdword`. Мы применяем определение структуры `NT_TIB`, чтобы прочитать смещение её поля `Self`, содержащее базовый адрес сегмента TEB. Для этого мы последовательно [**приводим типы**](https://ru.wikipedia.org/wiki/Приведение_типа#Приведения_типов_в_языке_C++). Общий алгоритм расчёта смещения выглядит следующим образом:
 
 1. Указатель на нулевой абсолютный адрес, который обозначается литералом `nullptr`, приводим к типу `PNT_TIB` с помощью оператора `static_cast`. Таким образом мы получаем указатель на структуру типа `NT_TIB`, расположенную по адресу 0.
@@ -366,77 +218,18 @@ PTEB GetTeb()
 
 Получить доступ к TEB сегменту можно и через WinAPI. Функция `NtCurrentTeb` реализует тот же алгоритм, что и `GetTeb` из листинга 3-5. С её помощью можно получить указатель на структуру типа `TEB` текущего потока. Листинг 3-6 демонстрирует использование `NtCurrentTeb`.
 
-_**Листинг 3-6.** Пример вызова WinAPI функции `NtCurrentTeb`_
-```C++
-#include <windows.h>
-#include <winternl.h>
+{caption: "Листинг 3-6. Пример вызова WinAPI функции `NtCurrentTeb`", format: C++}
+![`NtCurrentTeb.cpp`](code/InGameBots/NtCurrentTeb.cpp)
 
-PTEB pTeb = NtCurrentTeb();
-```
 Теперь все манипуляции над регистрами FS и GS происходят на уровне системной библиотеки ОС. Мы можем рассчитывать на её корректную работу для всех архитектур, поддерживаемых Windows (x86, x64, ARM).
 
 До сих пор мы рассматривали случай однопоточного приложения. Если например нам нужно получить TEB вспомогательного потока из функции `main` (то есть главного потока), то все рассмотренные выше способы не подходят.
 
 WinAPI функция `NtQueryInformationThread` предоставляет доступ к TEB любого потока. Она работает только в контексте вызывающего процесса, т.е. с её помощью вы не сможете прочитать TEB игрового приложения из бота. Но в некоторых случаях `NtQueryInformationThread` может быть полезна. Листинг 3-7 демонстрирует реализацию `GetTeb`, которая использует `NtQueryInformationThread`.
 
-_**Листинг 3-7.** Функция`GetTeb`, вызывающая `NtQueryInformationThread`_
-```C++
-#include <windows.h>
-#include <winternl.h>
+{caption: "Листинг 3-7. Функция`GetTeb`, вызывающая `NtQueryInformationThread`", format: C++}
+![`GetTeb_NtQueryInformationThread.cpp`](code/InGameBots/GetTeb_NtQueryInformationThread.cpp)
 
-#pragma comment(lib,"ntdll.lib")
-
-typedef struct _CLIENT_ID {
-    DWORD UniqueProcess;
-    DWORD UniqueThread;
-} CLIENT_ID, *PCLIENT_ID;
-
-typedef struct _THREAD_BASIC_INFORMATION {
-    typedef PVOID KPRIORITY;
-    NTSTATUS ExitStatus;
-    PVOID TebBaseAddress;
-    CLIENT_ID ClientId;
-    KAFFINITY AffinityMask;
-    KPRIORITY Priority;
-    KPRIORITY BasePriority;
-} THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
-
-typedef enum _THREADINFOCLASS2 {
-    ThreadBasicInformation,
-    ThreadTimes,
-    ThreadPriority,
-    ThreadBasePriority,
-    ThreadAffinityMask,
-    ThreadImpersonationToken,
-    ThreadDescriptorTableEntry,
-    ThreadEnableAlignmentFaultFixup,
-    ThreadEventPair_Reusable,
-    ThreadQuerySetWin32StartAddress,
-    ThreadZeroTlsCell,
-    ThreadPerformanceCount,
-    ThreadAmILastThread,
-    ThreadIdealProcessor,
-    ThreadPriorityBoost,
-    ThreadSetTlsArrayAddress,
-    _ThreadIsIoPending,
-    ThreadHideFromDebugger,
-    ThreadBreakOnTermination,
-    MaxThreadInfoClass
-} THREADINFOCLASS2;
-
-PTEB GetTeb()
-{
-    THREAD_BASIC_INFORMATION threadInfo;
-    if (NtQueryInformationThread(GetCurrentThread(),
-                                 (THREADINFOCLASS)ThreadBasicInformation,
-                                 &threadInfo, sizeof(threadInfo), NULL))
-    {
-        printf("NtQueryInformationThread return error\n");
-        return NULL;
-    }
-    return reinterpret_cast<PTEB>(threadInfo.TebBaseAddress);
-}
-```
 Параметры функции `NtQueryInformationThread` приведены в таблице 3-5. 
 
 _**Таблица 3-5.** Параметры функции `NtQueryInformationThread`_
@@ -501,58 +294,9 @@ DWORD pid = 5356;
 
 Листинг 3-8 демонстрирует реализацию этого алгоритма.
 
-_**Листинг 3-8.** Приложение `TebPebMirror.cpp`_
-```C++
-#include <windows.h>
-#include <winternl.h>
+{caption: "Листинг 3-8. Приложение `TebPebMirror.cpp`", format: C++}
+![`TebPebMirror.cpp`](code/InGameBots/TebPebMirror.cpp)
 
-BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)
-{
-    // Смотрите реализацию этой функции в листинге 3-1
-}
-
-BOOL GetMainThreadTeb(DWORD dwPid, PTEB pTeb)
-{
-    LPVOID tebAddress = NtCurrentTeb();
-    printf("TEB = %p\n", tebAddress);
-
-    HANDLE hProcess = OpenProcess(PROCESS_VM_READ, FALSE, dwPid);
-    if (hProcess == NULL)
-        return false;
-
-    if (ReadProcessMemory(hProcess, tebAddress, pTeb, sizeof(TEB), NULL) == FALSE)
-    {
-        CloseHandle(hProcess);
-        return false;
-    }
-
-    CloseHandle(hProcess);
-    return true;
-}
-
-int main()
-{
-    HANDLE hProc = GetCurrentProcess();
-
-    HANDLE hToken = NULL;
-    if (!OpenProcessToken(hProc, TOKEN_ADJUST_PRIVILEGES, &hToken))
-        printf("Failed to open access token\n");
-
-    if (!SetPrivilege(hToken, SE_DEBUG_NAME, TRUE))
-        printf("Failed to set debug privilege\n");
-
-    DWORD pid = 7368;
-
-    TEB teb;
-    if (!GetMainThreadTeb(pid, &teb))
-        printf("Failed to get TEB\n");
-
-    printf("PEB = %p StackBase = %p\n", teb.ProcessEnvironmentBlock,
-           teb.Reserved1[1]);
-
-    return 0;
-}
-```
 После запуска приложения `TebPebMirror.cpp`, в командной строке будут распечатаны базовые адреса трёх сегментов целевого процесса:
 
 * TEB
@@ -591,88 +335,9 @@ WinAPI функции прохода по списку активных пото
 
 Приложение `TebPebTraverse.cpp` из листинга 3-9 демонстрирует алгоритм перебора потоков.
 
-_**Листинг 3-9.** Приложение `TebPebTraverse.cpp`_
-```C++
-#include <windows.h>
-#include <tlhelp32.h>
-#include <winternl.h>
+{caption: "Листинг 3-9. Приложение `TebPebTraverse.cpp`", format: C++}
+![`TebPebTraverse.cpp`](code/InGameBots/TebPebTraverse.cpp)
 
-#pragma comment(lib,"ntdll.lib")
-
-typedef struct _CLIENT_ID {
-    // See struct definition in the TebPebSelf.cpp application
-} CLIENT_ID, *PCLIENT_ID;
-
-typedef struct _THREAD_BASIC_INFORMATION {
-    // See struct definition in the TebPebSelf.cpp application
-} THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
-
-typedef enum _THREADINFOCLASS2
-{
-    // See enumeration definition in the TebPebSelf.cpp application
-}   THREADINFOCLASS2;
-
-PTEB GetTeb(HANDLE hThread)
-{
-    THREAD_BASIC_INFORMATION threadInfo;
-    NTSTATUS result = NtQueryInformationThread(hThread,
-                                    (THREADINFOCLASS)ThreadBasicInformation,
-                                    &threadInfo, sizeof(threadInfo), NULL);
-    if (result)
-    {
-        printf("NtQueryInformationThread return error: %d\n", result);
-        return NULL;
-    }
-    return reinterpret_cast<PTEB>(threadInfo.TebBaseAddress);
-}
-
-void ListProcessThreads(DWORD dwOwnerPID)
-{
-    HANDLE hThreadSnap = INVALID_HANDLE_VALUE;
-    THREADENTRY32 te32;
-
-    hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-
-    if (hThreadSnap == INVALID_HANDLE_VALUE)
-        return;
-
-    te32.dwSize = sizeof(THREADENTRY32);
-
-    if (!Thread32First(hThreadSnap, &te32))
-    {
-        CloseHandle(hThreadSnap);
-        return;
-    }
-
-    DWORD result = 0;
-    do
-    {
-        if (te32.th32OwnerProcessID == dwOwnerPID)
-        {
-            printf("\n     THREAD ID = 0x%08X", te32.th32ThreadID);
-
-            HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE,
-                                        te32.th32ThreadID);
-            PTEB pTeb = GetTeb(hThread);
-            printf("\n     TEB = %p\n", pTeb);
-
-            CloseHandle(hThread);
-        }
-    } while (Thread32Next(hThreadSnap, &te32));
-
-    printf("\n");
-    CloseHandle(hThreadSnap);
-}
-
-int main()
-{
-    DWORD pid = 4792;
-
-    ListProcessThreads(pid);
-
-    return 0;
-}
-```
 Это приложение выводит в консоль список потоков целевого процесса. Для каждого из них указывается идентификатор, назначенный ОС (аналог PID для потока), и базовый адрес соответствующего TEB сегмента.
 
 Вся работа приложения происходит в функции `ListProcessThreads`, в которую передаётся PID целевого процесса. Для создания снимка состояния системы и работы с ним привилегия `SE_DEBUG_NAME` не требуется. Поэтому при запуске примера будет достаточно предоставить ему только права администратора.
@@ -715,48 +380,9 @@ W> Перебор блоков сегментов динамической па�
 
 Листинг 3-10 демонстрирует перебор сегментов динамической памяти целевого процесса.
 
-_**Листинг 3-10.** Приложение `HeapTraverse.cpp`_
-```C++
-#include <windows.h>
-#include <tlhelp32.h>
+{caption: "Листинг 3-10. Приложение `HeapTraverse.cpp`", format: C++}
+![`HeapTraverse.cpp`](code/InGameBots/HeapTraverse.cpp)
 
-void ListProcessHeaps(DWORD pid)
-{
-    HEAPLIST32 hl;
-
-    HANDLE hHeapSnap = CreateToolhelp32Snapshot(TH32CS_SNAPHEAPLIST, pid);
-
-    hl.dwSize = sizeof(HEAPLIST32);
-
-    if (hHeapSnap == INVALID_HANDLE_VALUE)
-    {
-        printf("CreateToolhelp32Snapshot failed (%d)\n", GetLastError());
-        return;
-    }
-
-    if (Heap32ListFirst(hHeapSnap, &hl))
-    {
-        do
-        {
-            printf("\nHeap ID: 0x%lx\n", hl.th32HeapID);
-            printf("\Flags: 0x%lx\n", hl.dwFlags);
-        } while (Heap32ListNext(hHeapSnap, &hl));
-    }
-    else
-        printf("Cannot list first heap (%d)\n", GetLastError());
-
-    CloseHandle(hHeapSnap);
-}
-
-int main()
-{
-    DWORD pid = 6712;
-
-    ListProcessHeaps(pid);
-
-    return 0;
-}
-```
 Это приложение выводит в консоль базовый адрес и флаги каждого сегмента динамической памяти целевого процесса. ID каждого сегмента соответствует его базовому адресу. Флаги важны, поскольку позволяют отличать сегменты друг от друга. Например, сегмент динамической памяти по умолчанию всегда имеет ненулевые флаги.
 
 Функция `ListProcessHeaps` очень похожа по принципу работы на `ListProcessThreads` из листинга 3-9. Её алгоритм выглядит следующим образом:
