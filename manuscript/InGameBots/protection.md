@@ -32,34 +32,9 @@ W> Все примеры этого раздела компилировалис�
 
 Листинг 3-16 демонстрирует исходный код тестового приложения.
 
-_**Листинг 3-16.** Исходный код тестового приложения_
-```C++
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
+{caption: "Листинг 3-16. Исходный код тестового приложения", format: C++}
+![`TestApplication.cpp`](code/InGameBots/TestApplication.cpp)
 
-static const uint16_t MAX_LIFE = 20;
-static uint16_t gLife = MAX_LIFE;
-
-int main()
-{
-    SHORT result = 0;
-
-    while (gLife > 0)
-    {
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
- 
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-    printf("stop\n");
-    return 0;
-}
-```
 Уровень здоровья игрового объекта хранится в глобальной переменной `gLife`. При старте приложения мы присваиваем ей значение константы `MAX_LIFE`, равное 20.
 
 Вся работа функции `main` происходит в цикле `while`. В нём мы проверяем состояние клавиши "1" с помощью WinAPI функции `GetAsyncKeyState`. Виртуальный код этой клавиши (равный 0x31) передаётся в функцию входным параметром. Если вызов `GetAsyncKeyState` возвращает состояние "не нажато", переменная `gLife` уменьшается на единицу. В противном случае – увеличивается также на единицу. После этого идёт односекундная задержка для того, чтобы пользователь успел отпустить клавишу.
@@ -120,71 +95,9 @@ _**Иллюстрация 3-25.** Сегменты модуля TestApplication_
 
 Исходный код бота приведён в листинге 3-17.
 
-_**Листинг 3-17.** Исходный код бота для тестового приложения_
-```C++
-#include <stdio.h>
-#include <windows.h>
+{caption: "Листинг 3-17. Исходный код бота для тестового приложения", format: C++}
+![`TestBot.cpp`](code/InGameBots/TestBot.cpp)
 
-BOOL SetPrivilege(HANDLE hToken, LPCTSTR lpszPrivilege, BOOL bEnablePrivilege)
-{
-    // См. реализацию этой функции в листинге 3-1
-}
-
-SIZE_T ScanSegments(HANDLE proc)
-{
-    MEMORY_BASIC_INFORMATION meminfo;
-    LPCVOID addr = 0;
-
-    if (!proc)
-        return 0;
-
-    while (1)
-    {
-        if (VirtualQueryEx(proc, addr, &meminfo, sizeof(meminfo)) == 0)
-            break;
-
-        if ((meminfo.State == MEM_COMMIT) && (meminfo.Type & MEM_IMAGE) && (meminfo.Protect == PAGE_READWRITE) && (meminfo.RegionSize == 0x1000))
-        {
-            return (SIZE_T)meminfo.BaseAddress;
-        }
-        addr = (unsigned char*)meminfo.BaseAddress + meminfo.RegionSize;
-    }
-    return 0;
-}
-
-WORD ReadWord(HANDLE hProc, DWORD_PTR address)
-{
-    // См. реализацию этой функции в листинге 3-13
-}
-
-void WriteWord(HANDLE hProc, DWORD_PTR address, WORD value)
-{
-    if (WriteProcessMemory(hProc, (void*)address, &value, sizeof(value), NULL) == 0)
-        printf("Failed to write memory: %u\n", GetLastError());
-}
-
-int main()
-{
-    // Предоставить SE_DEBUG_NAME привилегию текущему процессу
-
-    // Подключиться к процессу тестового приложения
-
-    SIZE_T lifeAddress = ScanSegments(hTargetProc);
-
-    ULONG hp = 0;
-    while (1)
-    {
-        hp = ReadWord(hTargetProc, lifeAddress);
-        printf("life = %lu\n", hp);
-
-        if (hp < 10)
-            WriteWord(hTargetProc, lifeAddress, 20);
-
-        Sleep(1000);
-    }
-    return 0;
-}
-```
 Главное различие ботов для тестового приложения и для Diablo 2 – это реализация функции `ScanSegments`. Теперь мы можем отличить нужный нам сегмент `.data` по его флагам и размеру. Эта информация выводится в окне "Memory map" отладчика OllyDbg. Таблица 3-8 поясняет значения флагов.
 
 _**Таблица 3-8.** Значения флагов сегмента `.data`_
@@ -238,34 +151,9 @@ int main()
 
 Листинг 3-18 демонстрирует правильный способ использования функции `IsDebuggerPresent`.
 
-_**Листинг 3-18.** Защита тестового приложения вызовом `IsDebuggerPresent`_
-```C++
-#include <stdio.h>
+{caption: "Листинг 3-18. Защита тестового приложения вызовом `IsDebuggerPresent`", format: C++}
+![`IsDebuggerPresent.cpp`](code/InGameBots/IsDebuggerPresent.cpp)
 
-int main()
-{
-    SHORT result = 0;
-
-    while (gLife > 0)
-    {
-        if (IsDebuggerPresent())
-        {
-            printf("debugger detected!\n");
-            exit(EXIT_FAILURE);
-        }
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-    printf("stop\n");
-    return 0;
-}
-```
 Правильно вызывать `IsDebuggerPresent` на каждой итерации цикла `while` (например в его начале). Благодаря этому отладчик будет обнаружен, даже если он подключится к уже работающему приложению.
 
 Как обойти такую защиту? Самый простой способ – манипулировать регистрами процессора в момент проверки. С помощью отладчика мы можем подменить возвращаемое функцией значение, чтобы предотвратить выполнение блока кода с вызовом `exit`.
@@ -428,70 +316,9 @@ BOOL IsDebug()
 
 Мы рассмотрим второй подход. Для создания дочернего процесса воспользуемся WinAPI функцией `CreateProcess`. Полный код тестового приложения приведён в листинге 3-19.
 
-_**Листинг 3-19.** Защита тестового приложения методом самоотладки_
-```C++
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
-#include <string>
+{caption: "Листинг 3-19. Защита тестового приложения методом самоотладки", format: C++}
+![`SelfDebugging.cpp`](code/InGameBots/SelfDebugging.cpp)
 
-using namespace std;
-
-static const uint16_t MAX_LIFE = 20;
-static uint16_t gLife = MAX_LIFE;
-
-void DebugSelf()
-{
-    wstring cmdChild(GetCommandLine());
-    cmdChild.append(L" x");
-
-    PROCESS_INFORMATION pi;
-    STARTUPINFO si;
-    ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-    ZeroMemory(&si, sizeof(STARTUPINFO));
-    GetStartupInfo(&si);
-
-    CreateProcess(NULL, (LPWSTR)cmdChild.c_str(), NULL, NULL, FALSE,
-            DEBUG_PROCESS | CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi);
-
-    DEBUG_EVENT de;
-    ZeroMemory(&de, sizeof(DEBUG_EVENT));
-
-    for (;;)
-    {
-        if (!WaitForDebugEvent(&de, INFINITE))
-            return;
-
-        ContinueDebugEvent(de.dwProcessId,
-                de.dwThreadId,
-                DBG_CONTINUE);
-    }
-}
-
-int main(int argc, char* argv[])
-{
-    if (argc == 1)
-    {
-        DebugSelf();
-    }
-    SHORT result = 0;
-
-    while (gLife > 0)
-    {
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-
-    printf("stop\n");
-    return 0;
-}
-```
 Иллюстрация 3-28 демонстрирует взаимодействие родительского и дочернего процессов.
 
 ![Взаимодействие процессов](images/InGameBots/self-debugging.png)
@@ -564,42 +391,9 @@ _**Иллюстрация 3-29.** Инструкции функции `IsDebugge
 
 Повторим рассмотренный алгоритм в коде нашего тестового приложения. Результат приведён в листинге 3-20.
 
-_**Листинг 3-20.** Обнаружение отладчика через прямой доступ к PEB сегменту_
-```C++
-#include <stdio.h>
+{caption: "Листинг 3-20. Обнаружение отладчика через прямой доступ к PEB сегменту", format: C++}
+![`CheckPeb.cpp`](code/InGameBots/CheckPeb.cpp)
 
-int main()
-{
-    SHORT result = 0;
-
-    while (gLife > 0)
-    {
-        int res = 0;
-        __asm
-        {
-            mov eax, dword ptr fs:[18h]
-            mov eax, dword ptr ds:[eax+30h]
-            movzx eax, byte ptr ds:[eax+2h]
-            mov res, eax
-        };
-        if (res)
-        {
-            printf("debugger detected!\n");
-            exit(EXIT_FAILURE);
-        }
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-    printf("stop\n");
-    return 0;
-}
-```
 Сравните наш код и инструкции процессора на иллюстрации 3-29. Они почти одинаковы. Единственное отличие в последней инструкции. В нашем коде значение флага `BeingDebugged` присваивается переменной `res`. Сразу после ассемблерной вставки она проверяется в `if` условии.
 
 Если вы поместите такую ассемблерную вставку и проверку на отладчик в нескольких местах приложения, их будет труднее найти чем вызовы функции `IsDebuggerPresent`. Можем ли мы в этом случае избежать дублирования кода? Это хороший вопрос. Если в следующих версиях Windows поменяется структура TEB или PEB сегмента, исправление придётся вносить в каждую копию ассемблерной вставки.
@@ -620,44 +414,9 @@ int main()
 
 Листинг 3-21 демонстрирует проверку флага `BeingDebugged` с помощью ассемблерной вставки, завёрнутой в макрос препроцессора.
 
-_**Листинг 3-21.** Обнаружение отладчика через прямой доступ к PEB сегменту_
-```C++
-#include <stdio.h>
+{caption: "Листинг 3-21. Обнаружение отладчика через прямой доступ к PEB сегменту", format: C++}
+![`CheckPebMacro.cpp`](code/InGameBots/CheckPebMacro.cpp)
 
-#define CheckDebug() \
-int isDebugger = 0; \
-{ \
-__asm mov eax, dword ptr fs : [18h] \
-__asm mov eax, dword ptr ds : [eax + 30h] \
-__asm movzx eax, byte ptr ds : [eax + 2h] \
-__asm mov isDebugger, eax \
-} \
-if (isDebugger) \
-{ \
-printf("debugger detected!\n"); \
-exit(EXIT_FAILURE); \
-}
-
-int main()
-{
-    SHORT result = 0;
-
-    while (gLife > 0)
-    {
-        CheckDebug();
-
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-    }
-
-    printf("stop\n");
-
-    return 0;
-}
-```
 Обратите внимание на использование макроса `CheckDebug` в функции `main`. Это выглядит как обычный вызов функции. Однако, поведения макроса и функции кардинально отличаются. Ещё на этапе обработки препроцессором файла с исходным кодом, который идёт до этапа компиляции, `main` будет преобразована следующим образом:
 ```C++
 int main()
@@ -804,47 +563,9 @@ if (isDebugger) \
 
 Вы можете использовать любую из этих функций для замеров времени между контрольными точками. Листинг 3-22 демонстрирует решение с использованием `GetTickCount`.
 
-_**Листинг 3-22.** Замер времени между контрольными точками приложения с помощью `GetTickCount`_
-```C++
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
+{caption: "Листинг 3-22. Замер времени между контрольными точками приложения с помощью `GetTickCount`", format: C++}
+![`GetTickCount.cpp`](code/InGameBots/GetTickCount.cpp)
 
-static const DWORD MAX_DELTA = 1020;
-
-static const uint16_t MAX_LIFE = 20;
-static uint16_t gLife = MAX_LIFE;
-
-int main()
-{
-    SHORT result = 0;
-
-    DWORD prevCounter = GetTickCount();
-
-    while (gLife > 0)
-    {
-        if (MAX_DELTA < (GetTickCount() - prevCounter))
-        {
-            printf("debugger detected!\n");
-            exit(EXIT_FAILURE);
-        }
-        prevCounter = GetTickCount();
-
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-
-    printf("stop\n");
-
-    return 0;
-}
-```
 В этом примере мы измеряем время между итерациями цикла `while`. Если остановок не было, каждая итерация длится чуть больше одной секунды. Большую часть этого времени занимают вызовы `Sleep` (1000 миллисекунд) и `printf`. Если задержка оказывается больше константы `MAX_DELTA`, равной 1020 миллисекунд, скорее всего, была остановка. В этом случае приложение завершается.
 
 Для тестирования примера выполните следующие действия:
@@ -869,93 +590,14 @@ int main()
 
 Листинг 3-23 демонстрирует использование счётчика TSC для замеров времени между контрольными точками приложения.
 
-_**Листинг 3-23.** Замер времени между контрольными точками приложения с помощью TSC_
-```C++
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
+{caption: "Листинг 3-23. Замер времени между контрольными точками приложения с помощью TSC счётчика", format: C++}
+![`TSC.cpp`](code/InGameBots/TSC.cpp)
 
-static const DWORD64 MAX_DELTA = 2650000000;
-
-static const uint16_t MAX_LIFE = 20;
-static uint16_t gLife = MAX_LIFE;
-
-#define ReadRdtsc(result) \
-{ \
-__asm cpuid \
-__asm rdtsc \
-__asm mov dword ptr[result + 0], eax \
-__asm mov dword ptr[result + 4], edx \
-}
-
-int main()
-{
-    SHORT result = 0;
-
-    DWORD64 prevCounter = 0;
-    ReadRdtsc(prevCounter);
-
-    while (gLife > 0)
-    {
-        DWORD64 counter = 0;
-        ReadRdtsc(counter);
-
-        if (MAX_DELTA < (counter - prevCounter))
-        {
-            printf("debugger detected!\n");
-            exit(EXIT_FAILURE);
-        }
-        ReadRdtsc(prevCounter);
-
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-
-    printf("stop\n");
-
-    return 0;
-}
-```
 Для 64-разрядного приложения функция `main` будет выглядеть следующим образом:
-```C++
-int main()
-{
-    SHORT result = 0;
 
-    DWORD64 prevCounter = __rdtsc();
+{format: C++}
+![`TSC64.cpp`](code/InGameBots/TSC64.cpp)
 
-    while (gLife > 0)
-    {
-        DWORD64 counter = __rdtsc();
-
-        if (MAX_DELTA < (counter - prevCounter))
-        {
-            printf("debugger detected!\n");
-            exit(EXIT_FAILURE);
-        }
-        prevCounter = __rdtsc();
-
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-
-    printf("stop\n");
-
-    return 0;
-}
-```
 Алгоритм этой проверки точно такой же, как и в примере из листинга 3-22. Отличие только в способе замера времени и величине константы `MAX_DELTA`. В данном случае мы измеряем не миллисекунды, а тактовые сигналы процессора. Каждая итерация цикла длится примерно два с половиной миллиона циклов. Из-за этого пороговое значение `MAX_DELTA` получилось намного больше.
 
 Обойти эту защиту труднее. Необходимо найти в коде приложения все инструкции `rdtsc` и выяснить, есть ли после каждой из них проверка на временную задержку. Если проверка есть, её надо инвертировать.
@@ -988,44 +630,9 @@ int main()
 
 [**XOR**](https://en.wikipedia.org/wiki/XOR_cipher) представляет собой самый простой алгоритм шифрования. Листинг 3-24 демонстрирует его использование.
 
-_**Листинг 3-24.** Защита данных приложения шифром XOR_
-```C++
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
+{caption: "Листинг 3-24. Защита данных приложения шифром XOR", format: C++}
+![`XOR.cpp`](code/InGameBots/XOR.cpp)
 
-using namespace std;
-
-inline uint16_t maskValue(uint16_t value)
-{
-    static const uint16_t MASK = 0xAAAA;
-    return (value ^ MASK);
-}
-
-static const uint16_t MAX_LIFE = 20;
-static uint16_t gLife = maskValue(MAX_LIFE);
-
-int main(int argc, char* argv[])
-{
-    SHORT result = 0;
-
-    while (maskValue(gLife) > 0)
-    {
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            gLife = maskValue(maskValue(gLife) - 1);
-        else
-            gLife = maskValue(maskValue(gLife) + 1);
-
-        printf("life = %u\n", maskValue(gLife));
-        Sleep(1000);
-    }
-
-    printf("stop\n");
-
-    return 0;
-}
-```
 Функция `maskValue` шифрует данные при первом вызове и дешифрует при повторном. Чтобы получить зашифрованное значение, мы используем **операцию XOR** (также известную как "исключающее ИЛИ") над данными и ключом. В качестве ключа используется константа `MASK`. Для расшифровки значения переменной `gLife`, `maskValue` вызывается повторно.
 
 Если вы запустите приложение и попробуйте найти переменную `gLife` по её значению с помощью Cheat Engine, вам это не удастся. Однако, если значение константы `MASK` известно, задача значительно упрощается. Всё что вам нужно, это вручную или с помощью стандартного калькулятора Windows рассчитать зашифрованное значение `gLife` и задать его сканеру. В этом случае поиск даст результат.
@@ -1041,130 +648,9 @@ gLife = gLife - 1;
 
 Даже с нашими улучшениями шифр XOR крайне прост для взлома. Чтобы надёжно защитить данные вашего приложения, понадобится более [**криптостойкий**](https://ru.wikipedia.org/wiki/Криптографическая_стойкость) шифр. WinAPI предоставляет ряд [криптографических функций](https://docs.microsoft.com/en-us/windows/win32/seccrypto/cryptography-functions). Среди них есть достаточно современный шифр AES. Попробуем применить его для нашего тестового приложения, как демонстрирует листинг 3-25.
 
-_**Листинг 3-25.** Защита данных приложения шифром AES_
-```C++
-#include <stdint.h>
-#include <stdio.h>
-#include <windows.h>
-#include <string>
+{caption: "Листинг 3-25. Защита данных приложения шифром AES", format: C++}
+![`AES.cpp`](code/InGameBots/AES.cpp)
 
-#pragma comment (lib, "advapi32")
-#pragma comment (lib, "user32")
-
-using namespace std;
-
-static const uint16_t MAX_LIFE = 20;
-static uint16_t gLife = 0;
-
-HCRYPTPROV hProv;
-HCRYPTKEY hKey;
-HCRYPTKEY hSessionKey;
-
-#define kAesBytes128 16
-
-typedef struct {
-    BLOBHEADER  header;
-    DWORD       key_length;
-    BYTE        key_bytes[kAesBytes128];
-} AesBlob128;
-
-static const BYTE gCipherBlockSize = kAesBytes128 * 2;
-static BYTE gCipherBlock[gCipherBlockSize] = {0};
-
-void CreateContex()
-{
-    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
-    {
-        printf("CryptAcquireContext() failed - error = 0x%x\n", GetLastError());
-    }
-}
-
-void CreateKey(string& key)
-{
-    AesBlob128 aes_blob;
-    aes_blob.header.bType = PLAINTEXTKEYBLOB;
-    aes_blob.header.bVersion = CUR_BLOB_VERSION;
-    aes_blob.header.reserved = 0;
-    aes_blob.header.aiKeyAlg = CALG_AES_128;
-    aes_blob.key_length = kAesBytes128;
-    memcpy(aes_blob.key_bytes, key.c_str(), kAesBytes128);
-
-    if (!CryptImportKey(hProv,
-                      reinterpret_cast<BYTE*>(&aes_blob),
-                      sizeof(AesBlob128),
-                      NULL,
-                      0,
-                      &hKey))
-    {
-        printf("CryptImportKey() failed - error = 0x%x\n", GetLastError());
-    }
-}
-
-void Encrypt()
-{
-    unsigned long length = kAesBytes128;
-    memset(gCipherBlock, 0, gCipherBlockSize);
-    memcpy(gCipherBlock, &gLife, sizeof(gLife));
-
-    if (!CryptEncrypt(hKey, 0, TRUE, 0, gCipherBlock, &length, gCipherBlockSize))
-    {
-        printf("CryptEncrypt() failed - error = 0x%x\n", GetLastError());
-        return;
-    }
-    gLife = 0;
-}
-
-void Decrypt()
-{
-    unsigned long length = gCipherBlockSize;
-
-    if (!CryptDecrypt(hKey, 0, TRUE, 0, gCipherBlock, &length))
-    {
-        printf("Error CryptDecrypt() failed - error = 0x%x\n", GetLastError());
-        return;
-    }
-    memcpy(&gLife, gCipherBlock, sizeof(gLife));
-    memset(gCipherBlock, 0, gCipherBlockSize);
-}
-
-int main(int argc, char* argv[])
-{
-    CreateContex();
-
-    string key("The secret key");
-
-    CreateKey(key);
-
-    gLife = MAX_LIFE;
-
-    Encrypt();
-
-    SHORT result = 0;
-
-    while (true)
-    {
-        result = GetAsyncKeyState(0x31);
-
-        Decrypt();
-
-        if (result != 0xFFFF8001)
-            gLife = gLife - 1;
-        else
-            gLife = gLife + 1;
-
-        printf("life = %u\n", gLife);
-
-        if (gLife == 0)
-            break;
-
-        Encrypt();
-
-        Sleep(1000);
-    }
-    printf("stop\n");
-    return 0;
-}
-```
 Рассмотрим алгоритм работы приложения. Его основные шаги вы можете проследить в функции `main`:
 
 1. Создать контекст для криптографического алгоритма с помощью функции `CreateContex`. Это обёртка над WinAPI функцией `CryptAcquireContext`. Контекст представляет собой комбинацию двух компонентов: **контейнер ключей** и **Cryptography Service Provider** (CSP) (криптопровайдер). Контейнер содержит все ключи, принадлежащие пользователю. CSP – это программный модуль, реализующий криптографический алгоритм.
@@ -1199,62 +685,9 @@ XOR шифр работает намного быстрее, но его про�
 
 Проверка целостности данных с помощью хеширования приведена в листинге 3-26.
 
-_**Листинг 3-26.** Проверка целостности данных приложения_
-```C++
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
-#include <functional>
+{caption: "Листинг 3-26. Проверка целостности данных приложения", format: C++}
+![`CheckHash.cpp`](code/InGameBots/CheckHash.cpp)
 
-using namespace std;
-
-static const uint16_t MAX_LIFE = 20;
-static uint16_t gLife = MAX_LIFE;
-
-std::hash<uint16_t> hashFunc;
-static size_t gLifeHash = hashFunc(gLife);
-
-void UpdateHash()
-{
-    gLifeHash = hashFunc(gLife);
-}
-
-__forceinline void CheckHash()
-{
-    if (gLifeHash != hashFunc(gLife))
-    {
-        printf("unauthorized modification detected!\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
-int main(int argc, char* argv[])
-{
-    SHORT result = 0;
-
-    while (gLife > 0)
-    {
-        result = GetAsyncKeyState(0x31);
-
-        CheckHash();
-
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        UpdateHash();
-        
-        printf("life = %u\n", gLife);
-
-        Sleep(1000);
-    }
-
-    printf("stop\n");
-
-    return 0;
-}
-```
 В этом примере мы добавили вспомогательную переменную `gLifeHash`, которая хранит хэшированное значение `gLife`. Для вычисления хеша используется функция `hash` из **стандартной библиотеки шаблонов** (STL) стандарта C++11.
 
 На каждой итерации `while` цикла мы сравниваем хэшированное и текущее значение переменной `gLife` в функции `CheckHash`. Если они различаются, мы делаем вывод о несанкционированном изменении переменной. После проверки мы работаем с `gLife` точно так же, как и раньше. Затем пересчитываем её хеш  с помощью функции `UpdateHash` и назначаем новое значение `gLifeHash`.
