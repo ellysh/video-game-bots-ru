@@ -26,20 +26,9 @@
 
 Для демонстрации алгоритмов шифрования воспользуемся простым приложением, которое передаёт текстовое сообщение по протоколу UDP. Мы использовали это приложение в разделе "Перехват трафика" (см. листинги 4-3 и 4-4). Немного изменим скрипт отправителя, чтобы вместо трёх байт отправлялась строка "Hello world!".
 
-_**Листинг 4-7.** Скрипт `TestStringUdpSender.py`_
-```Python
-import socket
+{caption: "Листинг 4-7. Скрипт `TestStringUdpSender.py`", format: Python}
+![`TestStringUdpSender.py`](code/OutGameBots/TestStringUdpSender.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24001))
-  data = bytes("Hello world!", "utf-8")
-  s.sendto(data, ("127.0.0.1", 24000))
-  s.close()
-
-if __name__
-  main()
-```
 Скрипт отправляет строку, хранящуюся в переменной `data`. Это байтовый массив, в котором каждой букве соответствует один байт ([**ASCII кодировка**](https://ru.wikipedia.org/wiki/ASCII)). Чтобы получить этот массив из исходной строки в кодировке [**UTF-8**](https://ru.wikipedia.org/wiki/UTF-8), используется функция `bytes`.
 
 Запустите скрипт `TestUdpReceiver.py` из листинга 4-3 и `TestStringUdpSender.py`. Когда получатели примет сообщение, он выведет на консоль текст:
@@ -66,26 +55,9 @@ W> В библиотеке PyCryptodome нет реализации шифра X
 
 Листинг 4-8 демонстрирует использование шифра XOR, предоставляемого библиотекой PyCrypto.
 
-_**Листинг 4-8.** Скрипт `XorTest.py`_
-```Python
-from Crypto.Cipher import XOR
+{caption: "Листинг 4-8. Скрипт `XorTest.py`", format: Python}
+![`XorTest.py`](code/OutGameBots/XorTest.py)
 
-def main():
-  key = b"The secret key"
-
-  # Encryption
-  encryption_suite = XOR.new(key)
-  cipher_text = encryption_suite.encrypt(b"Hello world!")
-  print(cipher_text)
-
-  # Decryption
-  decryption_suite = XOR.new(key)
-  plain_text = decryption_suite.decrypt(cipher_text)
-  print(plain_text)
-
-if __name__ == '__main__':
-  main()
-```
 Первая строка скрипта импортирует Python модуль `XOR`, в котором реализованы алгоритмы шифра. Чтобы ими воспользоваться, нам надо подготовить секретный ключ. Им служит строка "The secret key", хранящаяся в переменной `key`.
 
 Чтобы зашифровать строку, мы создаём объект `encryption_suite` класса `XORCipher` с помощью функции `new` (вызов `XOR.new`). В качестве параметра передаём в неё секретный ключ. У созданного объекта есть метод `encrypt`, который применяет шифр к переданному ему открытому тексту в формате байтового массива. Получившийся шифротекст сохраняется в переменной `cipher_text` и выводится на консоль. Он выглядит следующим образом:
@@ -98,49 +70,16 @@ b'\x1c\r\tL\x1cE\x14\x1d\x17\x18DJ'
 
 Теперь применим шифр XOR для скриптов отправки и получения UDP пакета нашего тестового приложения. Листинг 4-9 демонстрирует дополненный скрипт отправителя.
 
-_**Листинг 4-9.** Скрипт `XorUdpSender.py`_
-```Python
-import socket
-from Crypto.Cipher import XOR
+{caption: "Листинг 4-9. Скрипт `XorUdpSender.py`", format: Python}
+![`XorUdpSender.py`](code/OutGameBots/XorUdpSender.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24001))
-
-  key = b"The secret key"
-  encryption_suite = XOR.new(key)
-  cipher_text = encryption_suite.encrypt(b"Hello world!")
-
-  s.sendto(cipher_text, ("127.0.0.1", 24000))
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 В скрипте `XorUdpSender.py` мы шифруем строку "Hello world!" и отправляем её по протоколу UDP.
 
 Скрипт получателя приведён в листинге 4-10.
 
-_**Листинг 4-10.** Скрипт `XorUdpReceiver.py`_
-```Python
-import socket
-from Crypto.Cipher import XOR
+{caption: "Листинг 4-10. Скрипт `XorUdpReceiver.py`", format: Python}
+![`XorUdpReceiver.py`](code/OutGameBots/XorUdpReceiver.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24000))
-  data, addr = s.recvfrom(1024, socket.MSG_WAITALL)
-
-  key = b"The secret key"
-  decryption_suite = XOR.new(key)
-  plain_text = decryption_suite.decrypt(data)
-  print(plain_text)
-
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 Если вы запустите скрипты отправителя и получателя, результат будет тем же что и раньше. Скрипт `XorUdpReceiver.py` выведет на консоль полученную строку:
 ```
 b'Hello world!'
@@ -165,31 +104,9 @@ A ⊕ B = K
 ```
 Это означает, что можно восстановить секретный ключ, если известны открытый текст и шифротекст. Скрипт `XorCrack.py` из листинга 4-11 восстанавливает ключ по рассмотренному алгоритму.
 
-_**Листинг 4-11.** Скрипт `XorCrack.py`_
-```Python
-from Crypto.Cipher import XOR
+{caption: "Листинг 4-11. Скрипт `XorCrack.py`", format: Python}
+![`XorCrack.py`](code/OutGameBots/XorCrack.py)
 
-def main():
-  key = b"The secret key"
-
-  # Encryption
-  encryption_suite = XOR.new(key)
-  cipher_text = encryption_suite.encrypt(b"Hello world!")
-  print(cipher_text)
-
-  # Decryption
-  decryption_suite = XOR.new(key)
-  plain_text = decryption_suite.decrypt(cipher_text)
-  print(plain_text)
-
-  # Crack
-  crack_suite = XOR.new(plain_text)
-  key = crack_suite.encrypt(cipher_text)
-  print(key)
-
-if __name__ == '__main__':
-  main()
-```
 При запуске этот скрипт выведет на консоль следующее:
 ```
 b'\x1c\r\tL\x1cE\x14\x1d\x17\x18DJ'
@@ -218,28 +135,9 @@ b'The secret k'
 
 Листинг 4-12 демонстрирует скрипт для шифрования и дешифрования строки с помощью 3DES.
 
-_**Листинг 4-12.** Скрипт `3DesTest.py`_
-```Python
-from Crypto.Cipher import DES3
-from Crypto import Random
+{caption: "Листинг 4-12. Скрипт `3DesTest.py`", format: Python}
+![`3DesTest.py`](code/OutGameBots/3DesTest.py)
 
-def main():
-  key = b"The secret key a"
-  iv = Random.new().read(DES3.block_size)
-
-  # Encryption
-  encryption_suite = DES3.new(key, DES3.MODE_CBC, iv) 
-  cipher_text = encryption_suite.encrypt(b"Hello world!    ")
-  print(cipher_text)
-
-  # Decryption
-  decryption_suite = DES3.new(key, DES3.MODE_CBC, iv)
-  plain_text = decryption_suite.decrypt(cipher_text)
-  print(plain_text)
-
-if __name__ == '__main__':
-  main()
-```
 В этом скрипте мы импортируем Python модули `DES3` и `Random` библиотеки PyCrypto. Первый из них предоставляет класс `DES3Cipher`, в котором реализованы алгоритмы шифрования и дешифрования. Модуль `Random` предоставляет генератор случайных последовательностей байтов. Его следует использовать вместо стандартного модуля `random`, распространяемого с интерпретатором Python. Потому что `random` считается небезопасным для целей шифрования.
 
 Зачем алгоритму 3DES понадобился массив случайных байтов? 3DES – это блочный шифр. В нём открытый текст разделяется на блоки, которые последовательно шифруются с помощью секретного ключа. Если мы применим алгоритм как есть, шифр будет недостаточно надёжным. Причина в том, что атакующий может найти закономерность между отдельными блоками открытого текста и шифротекста. Тогда он сможет определить или по крайней мере предположить содержимое зашифрованных блоков. Чтобы предотвратить эту уязвимость, надо смешать каждый блок открытого текста с предыдущим блоком шифротекста. Этот подход известен как [**сцепление блоков шифротекста**](https://ru.wikipedia.org/wiki/Режим_сцепления_блоков_шифротекста) (Cipher Block Chaining или CBC). Единственная проблема возникает с первым блоком открытого текста. С какими данными следует смешивать его? Решение заключается в использовании случайно сгенерированный данных. Они называются [**вектором инициализации**](https://en.wikipedia.org/wiki/Initialization_vector) (Initialization Vector или IV).
@@ -271,53 +169,18 @@ b'Hello world!    '
 
 Теперь дополним скрипты отправки и приёма UDP сообщения так, чтобы они использовали 3DES шифр. Листинг 4-13 демонстрирует код отправителя.
 
-_**Листинг 4-13.** Скрипт `3DesUdpSender.py`_
-```Python
-import socket
-from Crypto.Cipher import DES3
-from Crypto import Random
+{caption: "Листинг 4-13. Скрипт `3DesUdpSender.py`", format: Python}
+![`3DesUdpSender.py`](code/OutGameBots/3DesUdpSender.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24001))
-
-  key = b"The secret key a"
-  iv = Random.new().read(DES3.block_size)
-  encryption_suite = DES3.new(key, DES3.MODE_CBC, iv)
-  cipher_text = iv + encryption_suite.encrypt(b"Hello world!    ")
-
-  s.sendto(cipher_text, ("127.0.0.1", 24000))
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 Скрипт `3DesUdpSender.py` шифрует открытый текст так же, как и `3DesTest.py`. Единственное отличие в том, что мы добавляем вектор инициализации в начало шифротекста. Затем отправляем его получателю в UDP пакете. Для чего это нужно? Как вы помните, для дешифровки сообщения нужен секретный ключ и вектор инициализации. Ключ мы можем сгенерировать заранее и сохранить на стороне отправителя и получателя. К сожалению, проделать то же самое с вектором инициализации не получится. Он должен быть уникальным для каждой операции шифрования, иначе алгоритм будет скомпрометирован, и атакующему будет проще взломать шифр. Следовательно, получатель сообщения должен каким-то образом узнать IV. Самое простое решение – отправлять его вместе с шифротекстом в одном пакете.
 
 Возникает вопрос: безопасно ли передавать вектор инициализации в открытом виде? Да, это вполне безопасно. Главная задача IV – добавлять случайность в шифротекст. Благодаря ему мы получаем разный результат при шифровании одного и того же открытого текста. При применении криптосистем IV часто рассматривается как обязательная часть шифротекста.
 
 Листинг 4-14 демонстрирует реализацию скрипта получателя.
 
-_**Листинг 4-14.** Скрипт `3DesUdpReceiver.py`_
-```Python
-import socket
-from Crypto.Cipher import DES3
+{caption: "Листинг 4-14. Скрипт `3DesUdpReceiver.py`", format: Python}
+![`3DesUdpReceiver.py`](code/OutGameBots/3DesUdpReceiver.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24000))
-  data, addr = s.recvfrom(1024, socket.MSG_WAITALL)
-
-  key = b"The secret key a"
-  decryption_suite = DES3.new(key, DES3.MODE_CBC, data[0:DES3.block_size])
-  plain_text = decryption_suite.decrypt(data[DES3.block_size:])
-  print(plain_text)
-
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 В скрипте `3DesUdpReceiver.py` мы передаём первый блок данных (байты с нулевого по `DES3.block_size`) из принятого UDP пакета в функцию `new` в качестве вектора инициализации. Она конструирует объект `decryption_suite`, с помощью которого мы расшифровываем оставшиеся байты сообщения.
 
 Если вы запустите сначала скрипт `3DesUdpReceiver.py`, а потом `3DesUdpSender.py`, получатель корректно расшифрует переданное сообщение и выведет его на консоль.
@@ -334,28 +197,9 @@ if __name__ == '__main__':
 
 Листинг 4-15 демонстрирует применение AES для шифрования и дешифрования строки.
 
-_**Листинг 4-15.** Скрипт `AesTest.py`_
-```Python
-from Crypto.Cipher import AES
-from Crypto import Random
+{caption: "Листинг 4-15. Скрипт `AesTest.py`", format: Python}
+![`AesTest.py`](code/OutGameBots/AesTest.py)
 
-def main():
-  key = b"The secret key a"
-  iv = Random.new().read(AES.block_size)
-
-  # Encryption
-  encryption_suite = AES.new(key, AES.MODE_CBC, iv)
-  cipher_text = encryption_suite.encrypt(b"Hello world!    ")
-  print(cipher_text)
-
-  # Decryption
-  decryption_suite = AES.new(key, AES.MODE_CBC, iv)
-  plain_text = decryption_suite.decrypt(cipher_text)
-  print(plain_text)
-
-if __name__ == '__main__':
-  main()
-```
 Сравните скрипты `AesTest.py` и `3DesTest.py`. Они очень похожи. Функция `new` модуля `AES` создаёт объект `encryption_suite` класса `AESCipher`. У неё те же три входных параметра, что и в случае 3DES: секретный ключ, режим сцепления блоков, IV. Кроме того, AES поддерживает те же режимы сцепления, что и 3DES.
 
 После запуска скрипта `AesTest.py`, в консоли напечатаются следующие строки:
@@ -367,51 +211,16 @@ b'Hello world!    '
 
 Листинг 4-16 демонстрирует скрипт `AesUdpSender.py`, который шифрует сообщение алгоритмом AES и отправляет его.
 
-_**Листинг 4-16.** Скрипт `AesUdpSender.py`_
-```Python
-import socket
-from Crypto.Cipher import AES
-from Crypto import Random
+{caption: "Листинг 4-16. Скрипт `AesUdpSender.py`", format: Python}
+![`AesUdpSender.py`](code/OutGameBots/AesUdpSender.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24001))
-
-  key = b"The secret key a"
-  iv = Random.new().read(AES.block_size)
-  encryption_suite = AES.new(key, AES.MODE_CBC, iv)
-  cipher_text = iv + encryption_suite.encrypt(b"Hello world!    ")
-
-  s.sendto(cipher_text, ("127.0.0.1", 24000))
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 Здесь мы отправляем IV в начале данных пакета точно так же, как и в скрипте `3DesUdpSender.py` (листинг 4-13). Алгоритм шифрования и отправки пакета такой же, как при использовании 3DES.
 
 Скрипт `AesUdpReceiver.py` из листинга 4-17 получает и дешифрует сообщение.
 
-_**Листинг 4-17.** Скрипт `AesUdpReceiver.py`_
-```Python
-import socket
-from Crypto.Cipher import AES
+{caption: "Листинг 4-17. Скрипт `AesUdpReceiver.py`", format: Python}
+![`AesUdpReceiver.py`](code/OutGameBots/AesUdpReceiver.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24000))
-  data, addr = s.recvfrom(1024, socket.MSG_WAITALL)
-
-  key = b"The secret key a"
-  decryption_suite = AES.new(key, AES.MODE_CBC, data[0:AES.block_size])
-  plain_text = decryption_suite.decrypt(data[AES.block_size:])
-  print(plain_text)
-
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 Скрипт `AesUdpReceiver.py` работает по тому же алгоритму, что и `3DesUdpReceiver.py` из листинга 4-14.
 
 Попробуйте запустить скрипты отправителя и получателя, чтобы проверить корректность их работы.
@@ -442,25 +251,8 @@ if __name__ == '__main__':
 
 Листинг 4-18 демонстрирует использование RSA для шифрования и дешифрования строки.
 
-_**Листинг 4-18.** Скрипт `RsaTest.py`_
-```Python
-from Crypto.PublicKey import RSA
-from Crypto import Random
-
-def main():
-  key = RSA.generate(1024, Random.new().read)
-
-  # Encryption
-  cipher_text = key.encrypt(b"Hello world!", 32)
-  print(cipher_text)
-
-  # Decryption
-  plain_text = key.decrypt(cipher_text)
-  print(plain_text)
-
-if __name__ == '__main__':
-  main()
-```
+{caption: "Листинг 4-18. Скрипт `RsaTest.py`", format: Python}
+![`RsaTest.py`](code/OutGameBots/RsaTest.py)
 
 W> Скрипт `RsaTest.py` не заработает, если вы используете библиотеку PyCryptodome.
 
@@ -476,28 +268,9 @@ W> Скрипт `RsaTest.py` не заработает, если вы испол
 
 Листинг 4-19 демонстрирует использование RSA-OAEP алгоритма для шифрования строки.
 
-_**Листинг 4-19.** Скрипт `RsaOaepTest.py`_
-```Python
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto import Random
+{caption: "Листинг 4-19. Скрипт `RsaOaepTest.py`", format: Python}
+![`RsaOaepTest.py`](code/OutGameBots/RsaOaepTest.py)
 
-def main():
-  key = RSA.generate(1024, Random.new().read)
-
-  # Encryption
-  encryption_suite = PKCS1_OAEP.new(key)
-  cipher_text = encryption_suite.encrypt(b"Hello world!")
-  print(cipher_text)
-
-  # Decryption
-  decryption_suite = PKCS1_OAEP.new(key)
-  plain_text = decryption_suite.decrypt(cipher_text)
-  print(plain_text)
-
-if __name__ == '__main__':
-  main()
-```
 Теперь для шифрования и дешифрования мы используем не `key`, а объекты класса `PKCS1OAEP_Cipher` из модуля `PKCS1_OAEP`. Он конструируется функцией `new`, которая принимает входным параметром объект класса `_RSAobj` (то есть RSA ключи). Для шифрования и дешифрования используются два разных OAEP объекта: `encryption_suite` и `decryption_suite`.
 
 Применим RSA-OAEP шифр для нашего тестового приложения, отправляющего UDP пакет по сети. Прежде всего необходимо изменить его алгоритм. В случае симметричного шифрования он тривиален: зашифровать открытый текст, передать его в пакете, расшифровать на стороне получателя. При применении асимметричного шифра появляется дополнительный шаг: передача открытого ключа отправителю сообщения. Ведь с его помощью и будет происходить шифрование.
@@ -518,60 +291,16 @@ if __name__ == '__main__':
 
 Листинг 4-20 демонстрирует скрипт, отправляющий сообщение.
 
-_**Листинг 4-20.** Скрипт `RsaUdpSender.py`_
-```Python
-import socket
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
+{caption: "Листинг 4-20. Скрипт `RsaUdpSender.py`", format: Python}
+![`RsaUdpSender.py`](code/OutGameBots/RsaUdpSender.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24001))
-
-  public_key, addr = s.recvfrom(1024, socket.MSG_WAITALL)
-
-  key = RSA.importKey(public_key)
-  cipher = PKCS1_OAEP.new(key)
-
-  cipher_text = cipher.encrypt(b"Hello world!")
-
-  s.sendto(cipher_text, ("127.0.0.1", 24000))
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 В этом скрипте мы используем функцию `importKey` модуля `RSA`. Она конструирует объект класса `_RSAobj`, содержащий только открытый ключ. Этого объекта будет достаточно для шифрования, но не для дешифрования. На входе `importKey` принимает ключ в формате байтового массива, который мы получаем из UDP пакета. Переменная `key` используется для конструирования объекта `cipher` класса `PKCS1OAEP_Cipher`. С его помощью мы шифруем сообщение и отправляем его получателю.
 
 Скрипт, получающий сообщение, приведён в листинге 4-21.
 
-_**Листинг 4-21.** Скрипт `RsaUdpReceiver.py`_
-```Python
-import socket
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto import Random
+{caption: "Листинг 4-21. Скрипт `RsaUdpReceiver.py`", format: Python}
+![`RsaUdpReceiver.py`](code/OutGameBots/RsaUdpReceiver.py)
 
-def main():
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-  s.bind(("127.0.0.1", 24000))
-
-  key = RSA.generate(1024, Random.new().read)
-  public_key = key.publickey().exportKey()
-
-  s.sendto(public_key, ("127.0.0.1", 24001))
-
-  data, addr = s.recvfrom(1024, socket.MSG_WAITALL)
-
-  cipher = PKCS1_OAEP.new(key)
-  plain_text = cipher.decrypt(data)
-  print(plain_text)
-
-  s.close()
-
-if __name__ == '__main__':
-  main()
-```
 Как мы рассмотрели ранее, в скрипте получателя сообщения появились дополнительные шаги для передачи открытого ключа. Мы генерируем пару ключей и сохраняем её в объекте `key`. Затем с помощью его метода `publickey` создаём временный объект класса `_RSAobj`, содержащий только открытый ключ. Его нужно представить в формате байтового массива, чтобы передать в UDP пакете. Для этого вызываем метод `exportKey` временного объекта. Результат сохраняем в переменную `public_key`.
 
 Метод `exportKey` есть у любого объекта класса `_RSAobj`. Что он экспортирует, если мы вызовем его для объекта `key`, содержащего и открытый ключ, и закрытый? В этом случае метод вернёт закрытый ключ. Это может быть полезно для сохранения его на жёстком диске и дальнейшего использования.
