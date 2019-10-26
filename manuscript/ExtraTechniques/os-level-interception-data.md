@@ -30,38 +30,9 @@
 
 Чтобы продемонстрировать методы перехвата WinAPI-вызовов, понадобится какое-то целевое приложение. Предлагаю воспользоваться программой, разработанной нами в разделе "Методы защиты от внутриигровых ботов" третьей главы. Немного изменённая версия её исходного кода приведена в листинге 5-9.
 
-_**Листинг 5-9.** Исходный код тестового приложения_
-```C++
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
-#include <string>
+{caption: "Листинг 5-9. Исходный код тестового приложения", format: C++}
+![`TestApplication.cpp`](code/ExtraTechniques/TestApplication.cpp)
 
-static const uint16_t MAX_LIFE = 20;
-volatile uint16_t gLife = MAX_LIFE;
-
-int main()
-{
-    SHORT result = 0;
-
-    while (gLife > 0)
-    {
-        result = GetAsyncKeyState(0x31);
-        if (result != 0xFFFF8001)
-            --gLife;
-        else
-            ++gLife;
-
-        std::string str(gLife, '#');
-        TextOutA(GetDC(NULL), 0, 0, str.c_str(), str.size());
-
-        printf("life = %u\n", gLife);
-        Sleep(1000);
-    }
-    printf("stop\n");
-    return 0;
-}
-```
 Алгоритм работы приложения не изменился. Каждую секунду значение глобальной переменной `gLife` уменьшается на единицу, если клавиша "1" не была нажата. В противном случае `gLife` увеличивается на один. Теперь вместо вывода на консоль с помощью функции `printf`, мы делаем WinAPI-вызов `TextOutA`. Он печатает строку, переданную в качестве входного параметра, в левом верхнем углу экрана. В нашем случае строка состоит из символов решетки, число которых соответствует значению переменной `gLife`.
 
 Зачем мы изменили функцию вывода информации? Наша цель заключается в перехвате WinAPI-вызовов. Функция `printf` предоставляется не WinAPI, а [**библиотекой времени выполнения**](https://ru.wikipedia.org/wiki/Библиотека_среды_выполнения) языка C. В этой библиотеке реализованы низкоуровневые функции, описанные в стандарте языка. Доступ к ним возможен как из приложений, написанных на C, так и C++. Конечно, техника перехвата вызовов подойдёт и для случая с `printf`. Но для примера будет интереснее разобрать вариант именно с WinAPI-функцией. Поэтому мы используем `TextOutA`.
@@ -229,29 +200,9 @@ mHinstDLL = LoadLibrary( "C:\\Windows\\SysWOW64\\gdi32.dll" );
 
 3. В том же файле `gdi32.cpp` замените обёртку функции `TextOutA` с именем `TextOutA_wrapper` на код из листинга 5-10.
 
-_**Листинг 5-10.** Алгоритм бота, реализованный в обёртке функции `TextOutA`_
-```C++
-extern "C" BOOL __stdcall TextOutA_wrapper(
-    _In_ HDC     hdc,
-    _In_ int     nXStart,
-    _In_ int     nYStart,
-    _In_ LPCSTR lpString,
-    _In_ int     cchString
-    )
-{
-    if (cchString < 10)
-    {
-        INPUT Input = { 0 };
-        Input.type = INPUT_KEYBOARD;
-        Input.ki.wVk = '1';
-        SendInput(1, &Input, sizeof(INPUT));
-    }
+{caption: "Листинг 5-10. Алгоритм бота, реализованный в обёртке функции `TextOutA`", format: C++}
+![`BotTextOutA.cpp`](code/ExtraTechniques/BotTextOutA.cpp)
 
-    typedef BOOL(__stdcall *pS)(HDC, int, int, LPCTSTR, int);
-    pS pps = (pS)mProcs[696];
-    return pps(hdc, nXStart, nYStart, lpString, cchString);
-}
-```
 Полная версия файла `gdi32.cpp` доступна в архиве с примерами к этой книге.
 
 Вспомним код вызова функции `TextOutA` из нашего тестового приложения:
@@ -279,28 +230,9 @@ _**Таблица 5-5.** Параметры WinAPI функции `TextOutA`_
 
 3. Вызываем функцию `TextOutA` из системной библиотеки `gdi32`. Для этого используем указатель на неё, хранящийся в глобальном массиве `mProcs`. Он содержит указатели на все функции, экспортируемые библиотекой `gdi32.dll`. Его инициализация происходит в функции `DllMain` в момент загрузки proxy DLL в память процесса (см листинг 5-11).
 
-_**Листинг 5-11.** Инициализация массива `mProcs` с указателями на функции `gdi32.dll`_
-```C++
-HINSTANCE mHinst = 0, mHinstDLL = 0;
-UINT_PTR mProcs[727] = {0};
-LPCSTR mImportNames[] = {...}
+{caption: "Листинг 5-11. Инициализация массива `mProcs` с указателями на функции `gdi32.dll`", format: C++}
+![`mProcsInit.cpp`](code/ExtraTechniques/mProcsInit.cpp)
 
-BOOL WINAPI DllMain( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved ) {
-    mHinst = hinstDLL;
-    if ( fdwReason == DLL_PROCESS_ATTACH ) {
-        mHinstDLL = LoadLibrary( "C:\\Windows\\SysWOW64\\gdi32.dll" );
-        if ( !mHinstDLL )
-            return ( FALSE );
-        for (int i = 0; i < 727; i++)
-        {
-            mProcs[i] = (UINT_PTR)GetProcAddress(mHinstDLL, mImportNames[i]);
-        }
-    } else if ( fdwReason == DLL_PROCESS_DETACH ) {
-        FreeLibrary( mHinstDLL );
-    }
-    return ( TRUE );
-}
-```
 Алгоритм инициализации массива `mProcs` крайне прост. Скрипт-генератор составил список имён экспортируемых библиотекой функций и поместил его в массив `mImportNames`. В функции `DllMain` мы загружаем `gdi32.dll` библиотеку с помощью WinAPI-вызова `LoadLibrary`. Затем циклом `for` проходим по массиву `mImportNames` и для каждого имени функции читаем её адрес с помощью `GetProcAddress`. Результат сохраняем массив `mProcs`.
 
 Как в листинге 5-10 мы узнали, что порядковый номер `TextOutA` в массиве `mProcs` равен 696? Этот номер указан в обёртке, которую сгенерировал скрипт DLL Wrapper Generator:
@@ -441,29 +373,8 @@ CNktDvEngine::CreateHook (gdi32.dll!TextOutA) => 00000000
 
 4. Перед методом `CMySpyMgr::OnFunctionCalled` добавьте функцию `ProcessParam` из листинга 5-12, реализующую алгоритм бота.
 
-_**Листинг 5-12.** Алгоритм бота в функции `ProcessParam`_
-```C++
-VOID ProcessParam(__in Deviare2::INktParam *lpParam)
-{
-    CComBSTR cBstrName;
-    lpParam->get_Name(&cBstrName);
-
-    unsigned long val = 0;
-    HRESULT hRes = lpParam->get_ULongVal(&val);
-    if (FAILED(hRes))
-        return;
-
-    wprintf(L"ProcessParam() - name = %s value = %u\n", (BSTR)cBstrName, (unsigned int)(val));
-
-    if (val < 10)
-    {
-        INPUT Input = { 0 };
-        Input.type = INPUT_KEYBOARD;
-        Input.ki.wVk = '1';
-        SendInput( 1, &Input, sizeof( INPUT ) );
-    }
-}
-```
+{caption: "Листинг 5-12. Алгоритм бота в функции `ProcessParam`", format: C++}
+![`BotProcessParam.cpp`](code/ExtraTechniques/BotProcessParam.cpp)
 
 5. В метод `CMySpyMgr::OnFunctionCalled` добавьте вызов функции `ProcessParam`. Найдите следующую строчку:
 ```C+++
