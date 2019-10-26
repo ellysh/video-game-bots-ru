@@ -45,25 +45,9 @@
 
 Листинг 5-1 демонстрирует программу `keyboard.ino` для платы Arduino. Она симулирует события клавиатуры. При этом из UART-интерфейса читается код клавиши, которую требуется нажать.
 
-_**Листинг 5-1.** Программа `keyboard.ino`_
-```C++
-#include <Keyboard.h>
+{caption: "Листинг 5-1. Программа `keyboard.ino`", format: C++}
+![`keyboard.ino`](code/ExtraTechniques/keyboard.ino)
 
-void setup()
-{
-  Serial.begin(9600);
-  Keyboard.begin();
-}
-
-void loop()
-{
-  if (Serial.available() > 0)
-  {
-    int incomingByte = Serial.read();
-    Keyboard.write(incomingByte);
-  }
-}
-```
 В этой программе мы используем библиотеку [**Keyboard**](https://www.arduino.cc/reference/en/language/functions/usb/keyboard), которую предоставляет Arduino IDE. Она позволяет генерировать события нажатия клавиш. Подключенный по USB компьютер получает их через интерфейс [**HID**](https://en.wikipedia.org/wiki/Human_interface_device) (Human Interface Device). Он является современным стандартом взаимодействия с устройствами ввода.
 
 I> Оба интерфейса HID и UART способны работать одновременно по одному USB-кабелю, соединяющему плату Arduino и компьютер.
@@ -94,62 +78,9 @@ I> Оба интерфейса HID и UART способны работать о�
 
 Листинг 5-2 демонстрирует использование обёрток CommAPI. Приведённый в нём скрипт печатает строку "Hello world!" в окне Notepad. Для симуляции нажатий клавиш он использует плату Arduino с загруженной на неё программой из листинга 5-1.
 
-_**Листинг 5-2.** Скрипт `ControlKeyboard.au3`_
-```AutoIt
-#include "CommInterface.au3"
+{caption: "Листинг 5-2. Скрипт `ControlKeyboard.au3`", format: AutoIt}
+![`ControlKeyboard.au3`](code/ExtraTechniques/ControlKeyboard.au3)
 
-func ShowError()
-    MsgBox(16, "Error", "Error " & @error)
-    endfunc
-
-func OpenPort()
-    local const $iPort = 7
-    local const $iBaud = 9600
-    local const $iParity = 0
-    local const $iByteSize = 8
-    local const $iStopBits = 1
-
-    $hPort = _CommAPI_OpenCOMPort($iPort, $iBaud, $iParity, $iByteSize, $iStopBits)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    _CommAPI_ClearCommError($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    _CommAPI_PurgeComm($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    return $hPort
-endfunc
-
-func SendArduino($hPort, $command)
-    _CommAPI_TransmitString($hPort, $command)
-    if @error then ShowError()
-endfunc
-
-func ClosePort($hPort)
-    _CommAPI_ClosePort($hPort)
-    if @error then ShowError()
-endfunc
-
-$hWnd = WinGetHandle("[CLASS:Notepad]")
-WinActivate($hWnd)
-Sleep(200)
-
-$hPort = OpenPort()
-
-SendArduino($hPort, "Hello world!")
-
-ClosePort($hPort)
-```
 Общий алгоритм скрипта состоит из следующих шагов:
 
 1. Переключиться на окно Notepad с помощью AutoIt функции `WinActivate`.
@@ -216,108 +147,18 @@ _**Таблица 5-1.** Формат команды_
 
 Листинг 5-3 демонстрирует Arduino программу, поддерживающую наш протокол.
 
-_**Листинг 5-3.** Программа `keyboard-combo.ino`_
-```C++
-#include <Keyboard.h>
+{caption: "Листинг 5-3. Программа `keyboard-combo.ino`", format: C++}
+![`keyboard-combo.ino`](code/ExtraTechniques/keyboard-combo.ino)
 
-void setup()
-{
-  Serial.begin(9600);
-  Keyboard.begin();
-}
-
-void pressKey(char modifier, char key)
-{
-  Keyboard.press(modifier);
-  Keyboard.write(key);
-  Keyboard.release(modifier);
-}
-
-void loop()
-{
-  static const char PREAMBLE = 0xDC;
-  static const uint8_t BUFFER_SIZE = 3;
-
-  if (Serial.available() > 0)
-  {
-    char buffer[BUFFER_SIZE] = {0};
-    uint8_t readBytes = Serial.readBytes(buffer, BUFFER_SIZE);
-
-    if (readBytes != BUFFER_SIZE)
-      return;
-
-    if (buffer[0] != PREAMBLE)
-      return;
-
-     pressKey(buffer[1], buffer[2]);
-  }
-}
-```
 В программе появилась новая функция `pressKey`. Кроме этого, алгоритм `loop` стал сложнее. Мы читаем принятую команду из входного буфера UART с помощью метод `readBytes` объекта `Serial`. Для проверки её корректности используем операторы `if`. Первый из них сравнивает длину команды с ожидаемой. Второй — соответствие её первого байта и преамбулы. Если любая из проверок не проходит, обработка команды прекращается.
 
 Симуляция нажатия сочетания клавиш происходит в функции `pressKey`. У неё два входных параметра: код модификатора и клавиши. Чтобы нажать и удерживать модификатор, используется метод `press` объекта `Keyboard`. Затем симулируется нажатие основной клавиши с помощью метода `write`. После этого модификатор отпускается вызовом `release`.
 
 Управляющий AutoIt скрипт также должен поддерживать новый протокол передачи команд. Его исправленная версия приведена в листинге 5-4.
 
-_**Листинг 5-4.** Скрипт `ControlKeyboardCombo.au3`_
-```AutoIt
-#include "CommInterface.au3"
+{caption: "Листинг 5-4. Скрипт `ControlKeyboardCombo.au3`", format: AutoIt}
+![`ControlKeyboardCombo.au3`](code/ExtraTechniques/ControlKeyboardCombo.au3)
 
-func ShowError()
-    MsgBox(16, "Error", "Error " & @error)
-endfunc
-
-func OpenPort()
-    local const $iPort = 7
-    local const $iBaud = 9600
-    local const $iParity = 0
-    local const $iByteSize = 8
-    local const $iStopBits = 1
-
-    $hPort = _CommAPI_OpenCOMPort($iPort, $iBaud, $iParity, $iByteSize, $iStopBits)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    _CommAPI_ClearCommError($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    _CommAPI_PurgeComm($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    return $hPort
-endfunc
-
-func SendArduino($hPort, $modifier, $key)
-    local $command[3] = [0xDC, $modifier, $key]
-
-    _CommAPI_TransmitString($hPort, StringFromASCIIArray($command, 0, UBound($command), 1))
-
-    if @error then ShowError()
-endfunc
-
-func ClosePort($hPort)
-    _CommAPI_ClosePort($hPort)
-    if @error then ShowError()
-endfunc
-
-$hWnd = WinGetHandle("[CLASS:Notepad]")
-WinActivate($hWnd)
-Sleep(200)
-
-$hPort = OpenPort()
-
-SendArduino($hPort, 0x82, 0xB3)
-
-ClosePort($hPort)
-```
 Единственное отличие здесь от скрипта `ControlKeyboard.au3` в функции `SendArduino`. Теперь вместо строки символов, которые передаются последовательно, она передаёт команду из трёх байтов: преамбула, модификатор и клавиша. Для отправки данных используется та же CommAPI функция `_CommAPI_TransmitString`. Сложность заключается в том, что она ожидает входным параметром строку. Команда же представляет собой байтовый массив. Его можно преобразовать в строку с помощью стандартной функции AutoIt `StringFromASCIIArray`.
 
 Для тестирования Arduino программы и скрипта выполните следующие шаги:
@@ -390,42 +231,9 @@ static const uint8_t _hidReportDescriptor[] PROGMEM = {
 ```
 Программа `mouse.ino` из листинга 5-5 симулирует нажатие кнопки мыши в указанной точке экрана.
 
-_**Листинг 5-5.** Программа `mouse.ino`_
-```C++
-#include <Mouse.h>
+{caption: "Листинг 5-5. Программа `mouse.ino`", format: C++}
+![`mouse.ino`](code/ExtraTechniques/mouse.ino)
 
-void setup()
-{
-  Serial.begin(9600);
-  Mouse.begin();
-}
-
-void click(signed char x, signed char y, char button)
-{
-  Mouse.move(x, y);
-  Mouse.click(button);
-}
-
-void loop()
-{
-  static const char PREAMBLE = 0xDC;
-  static const uint8_t BUFFER_SIZE = 4;
-
-  if (Serial.available() > 0)
-  {
-    char buffer[BUFFER_SIZE] = {0};
-    uint8_t readBytes = Serial.readBytes(buffer, BUFFER_SIZE);
-
-    if (readBytes != BUFFER_SIZE)
-      return;
-
-    if (buffer[0] != PREAMBLE)
-      return;
-
-   click(buffer[1], buffer[2], buffer[3]);
-  }  
-}
-```
 Алгоритмы программ `mouse.ino` и `keyboard-combo.ino` из листинга 5-3 очень похожи. Теперь мы получаем от управляющего AutoIt скрипта команду, состоящую не из трёх байт, а из четырёх. Её формат приведён в таблице 5-2.
 
 _**Таблица 5-2.** Формат команды_
@@ -474,73 +282,9 @@ Ya = 127 * 300 / 768 = 49
 
 Листинг 5-6 демонстрирует управляющий скрипт для программы `mouse.ino`.
 
-_**Листинг 5-6.** Скрипт `ControlMouse.au3`_
-```AutoIt
-#include "CommInterface.au3"
+{caption: "Листинг 5-6. Скрипт `ControlMouse.au3`", format: AutoIt}
+![`ControlMouse.au3`](code/ExtraTechniques/ControlMouse.au3)
 
-func ShowError()
-    MsgBox(16, "Error", "Error " & @error)
-endfunc
-
-func OpenPort()
-    local const $iPort = 8
-    local const $iBaud = 9600
-    local const $iParity = 0
-    local const $iByteSize = 8
-    local const $iStopBits = 1
-
-    $hPort = _CommAPI_OpenCOMPort($iPort, $iBaud, $iParity, $iByteSize, $iStopBits)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    _CommAPI_ClearCommError($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    _CommAPI_PurgeComm($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    return $hPort
-endfunc
-
-func GetX($x)
-    return (127 * $x / 1366)
-endfunc
-
-func GetY($y)
-    return (127 * $y / 768)
-endfunc
-
-func SendArduino($hPort, $x, $y, $button)
-    local $command[4] = [0xDC, GetX($x), GetY($y), $button]
-
-    _CommAPI_TransmitString($hPort, StringFromASCIIArray($command, 0, UBound($command), 1))
-
-    if @error then ShowError()
-endfunc
-
-func ClosePort($hPort)
-    _CommAPI_ClosePort($hPort)
-    if @error then ShowError()
-endfunc
-
-$hWnd = WinGetHandle("[CLASS:MSPaintApp]")
-WinActivate($hWnd)
-Sleep(200)
-
-$hPort = OpenPort()
-
-SendArduino($hPort, 250, 300, 1)
-
-ClosePort($hPort)
-```
 Этот скрипт очень похож на `ControlKeyboardCombo.au3` из листинга 5-4. Теперь в функцию `SendArduino` передаются четыре параметра: дескриптор порта, координаты курсора X и Y, код кнопки для нажатия. Кроме этого появились две новые функции: `GetX` и `GetY`. Они переводят соответствующие координаты из шкалы экрана в шкалу Arduino платы.
 
 W> В функциях `GetX` и `GetY` используется текущее разрешение экрана. В нашем примере оно равно 1366×768. Не забудьте поменять его на актуальное значение для вашего монитора.
@@ -573,75 +317,9 @@ _**Таблица 5-4.** Коды симулируемых действий_
 
 Листинг 5-7 демонстрирует программу для платы, которая поддерживает новый формат команд.
 
-_**Листинг 5-7.** Программа `keyboard-mouse.ino`_
-```C++
-#include <Mouse.h>
-#include <Keyboard.h>
+{caption: "Листинг 5-7. Программа `keyboard-mouse.ino`", format: C++}
+![`keyboard-mouse.ino`](code/ExtraTechniques/keyboard-mouse.ino)
 
-void setup()
-{
-  Serial.begin(9600);
-  Keyboard.begin();
-  Mouse.begin();
-}
-
-void pressKey(char key)
-{
-  Keyboard.write(key);
-}
-
-void pressKey(char modifier, char key)
-{
-  Keyboard.press(modifier);
-  Keyboard.write(key);
-  Keyboard.release(modifier);
-}
-
-void click(signed char x, signed char y, char button)
-{
-  Mouse.move(x, y);
-  Mouse.click(button);
-}
-
-void loop()
-{
-  static const char PREAMBLE = 0xDC;
-  static const uint8_t BUFFER_SIZE = 5;
-  enum
-  {
-    KEYBOARD_COMMAND = 0x1,
-    KEYBOARD_MODIFIER_COMMAND = 0x2,
-    MOUSE_COMMAND = 0x3
-  };
-  
-  if (Serial.available() > 0)
-  {
-    char buffer[BUFFER_SIZE] = {0};
-    uint8_t readBytes = Serial.readBytes(buffer, BUFFER_SIZE);
-    
-    if (readBytes != BUFFER_SIZE)
-      return;
-
-    if (buffer[0] != PREAMBLE)
-      return;
-
-    switch(buffer[1])
-    {
-      case KEYBOARD_COMMAND:
-        pressKey(buffer[3]);
-        break;
-
-      case KEYBOARD_MODIFIER_COMMAND:
-        pressKey(buffer[2], buffer[3]);
-        break;
-
-      case MOUSE_COMMAND:
-        click(buffer[2], buffer[3], buffer[4]);
-        break;
-    }
-  }  
-}
-```
 Для выбора симулируемого действия в зависимости от полученного кода, мы используем оператор `switch` в функции `loop`. Этот оператор проверяет значение второго байта команды. Он определяет, какая из функций будет вызвана для обработки оставшихся байт. Для удобства в операторе `switch` мы используем константы с кодами команд: `KEYBOARD_COMMAND` (0x1), `KEYBOARD_MODIFIER_COMMAND` (0x2) и `MOUSE_COMMAND` (0x3).
 
 Возможно, вы заметили, что в случае команды на нажатие клавиши управляющий скрипт передаёт лишние данные. Метод `readBytes` объекта `Serial` всегда читает пять байтов (это константа `BUFFER_SIZE`) из входного буфера UART. Но используются из них только три в случае нажатия без модификатора или четыре – с модификатором. Можно ли оптимизировать эти накладные расходы и не передавать лишние данные? Предположим, что мы исправили управляющий скрипт. В результате этого длина команды зависит от кода действия, указанного во втором байте. Проблема в том, что мы должны передать в метод `readBytes` число байт для чтения из входного буфера UART. Но на момент его вызова, эта информация неизвестна. Поэтому нам придётся воспользоваться другим методом объекта `Serial`.
@@ -654,100 +332,9 @@ void loop()
 
 Листинг 5-8 демонстрирует управляющий скрипт для программы `keyboard-mouse.ino`.
 
-_**Листинг 5-8.** Скрипт `ControlKeyboardMouse.au3`_
-```AutoIt
-#include "CommInterface.au3"
+{caption: "Листинг 5-8. Скрипт `ControlKeyboardMouse.au3`", format: AutoIt}
+![`ControlKeyboardMouse.au3`](code/ExtraTechniques/ControlKeyboardMouse.au3)
 
-func ShowError()
-    MsgBox(16, "Error", "Error " & @error)
-endfunc
-
-func OpenPort()
-    local const $iPort = 10
-    local const $iBaud = 9600
-    local const $iParity = 0
-    local const $iByteSize = 8
-    local const $iStopBits = 1
-
-    $hPort = _CommAPI_OpenCOMPort($iPort, $iBaud, $iParity, $iByteSize, $iStopBits)
-    if @error then
-        ShowError()
-        return NULL
-    endif
- 
-    _CommAPI_ClearCommError($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
- 
-    _CommAPI_PurgeComm($hPort)
-    if @error then
-        ShowError()
-        return NULL
-    endif
-
-    return $hPort
-endfunc
-
-func SendArduinoKeyboard($hPort, $modifier, $key)
-    if $modifier == NULL then
-        local $command[5] = [0xDC, 0x1, 0xFF, $key, 0xFF]
-    else
-        local $command[5] = [0xDC, 0x2, $modifier, $key, 0xFF]
-    endif
-
-    _CommAPI_TransmitString($hPort, StringFromASCIIArray($command, 0, UBound($command), 1))
-
-    if @error then ShowError()
-endfunc
-
-func GetX($x)
-    return (127 * $x / 1366)
-endfunc
-
-func GetY($y)
-    return (127 * $y / 768)
-endfunc
-
-func SendArduinoMouse($hPort, $x, $y, $button)
-    local $command[5] = [0xDC, 0x3, GetX($x), GetY($y), $button]
-
-    _CommAPI_TransmitString($hPort, StringFromASCIIArray($command, 0, UBound($command), 1))
-
-    if @error then ShowError()
-endfunc
-
-func ClosePort($hPort)
-    _CommAPI_ClosePort($hPort)
-    if @error then ShowError()
-endfunc
-
-$hPort = OpenPort()
-
-$hWnd = WinGetHandle("[CLASS:MSPaintApp]")
-WinActivate($hWnd)
-Sleep(200)
-
-SendArduinoMouse($hPort, 250, 300, 1)
-
-Sleep(1000)
-
-$hWnd = WinGetHandle("[CLASS:Notepad]")
-WinActivate($hWnd)
-Sleep(200)
-
-SendArduinoKeyboard($hPort, Null, 0x54) ; T
-SendArduinoKeyboard($hPort, Null, 0x65) ; e
-SendArduinoKeyboard($hPort, Null, 0x73) ; s
-SendArduinoKeyboard($hPort, Null, 0x74) ; t
-
-Sleep(1000)
-
-SendArduinoKeyboard($hPort, 0x82, 0xB3) ; Alt+Tab
-
-ClosePort($hPort)
-```
 В этом скрипте мы реализовали две отдельные функции для симуляции действий клавиатуры и мыши. `SendArduinoKeyboard` отправляет на плату команду для нажатия клавиши. Её алгоритм почти такой же, как у функции `SendArduino` из скрипта `ControlKeyboardCombo.au3` (листинг 5-4). Отличие в формате команды: появился второй байт с кодом действия. Также мы дополняем байтовый массив на выдачу до необходимой длины в пять байтов с помощью константного значения 0xFF. Если нажатие симулируется без модификатора, то третий байт сообщения также заменяется на 0xFF.
 
 Функция `SendArduinoMouse` отправляет команду для симуляции щелчка мыши. Единственное её отличие от аналога из скрипта `ControlMouse.au3` (листинг 5-6) – добавлен код действия во втором байте.
