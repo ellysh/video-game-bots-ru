@@ -8,7 +8,8 @@ VOID ProcessParam(__in Deviare2::INktParam *lpParam)
     if (FAILED(hRes))
         return;
 
-    wprintf(L"ProcessParam() - name = %s value = %u\n", (BSTR)cBstrName, (unsigned int)(val));
+    wprintf(L"ProcessParam() - name = %s value = %u\n",
+            (BSTR)cBstrName, (unsigned int)(val));
 
     if (val < 10)
     {

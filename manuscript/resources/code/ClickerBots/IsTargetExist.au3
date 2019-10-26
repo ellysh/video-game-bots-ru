@@ -5,15 +5,20 @@ func IsTargetExist()
     const $PosX = 688
     const $PosY = 67
 
-    $coords = FFBestSpot($SizeSearch, $MinNbPixel, $OptNbPixel, $PosX, $PosY, 0x871D18, 10)
+    $coords = FFBestSpot($SizeSearch, $MinNbPixel, $OptNbPixel, _
+                         $PosX, $PosY, 0x871D18, 10)
 
     const $MaxX = 800
     const $MinX = 575
     const $MaxY = 100
 
     if not @error then
-        if $MinX < $coords[0] and $coords[0] < $MaxX and $coords[1] < $MaxY then
-            LogWrite("IsTargetExist() - Success, coords = " & $coords[0] & ", " & $coords[1] & " pixels = " & $coords[2])
+        if $MinX < $coords[0] and $coords[0] < $MaxX _
+           and $coords[1] < $MaxY then
+
+            LogWrite("IsTargetExist() - Success, coords = " & _
+                     $coords[0] & ", " & $coords[1] & " pixels = " & _
+                     $coords[2])
             return True
         else
             LogWrite("IsTargetExist() - Fail #1")
@@ -24,4 +29,3 @@ func IsTargetExist()
         return False
     endif
 endfunc
-

@@ -19,7 +19,9 @@ SIZE_T ScanSegments(HANDLE proc)
         if (VirtualQueryEx(proc, addr, &meminfo, sizeof(meminfo)) == 0)
             break;
 
-        if ((meminfo.State == MEM_COMMIT) && (meminfo.Type & MEM_IMAGE) && (meminfo.Protect == PAGE_READWRITE) && (meminfo.RegionSize == 0x1000))
+        if ((meminfo.State == MEM_COMMIT) && (meminfo.Type & MEM_IMAGE)
+            && (meminfo.Protect == PAGE_READWRITE)
+            && (meminfo.RegionSize == 0x1000))
         {
             return (SIZE_T)meminfo.BaseAddress;
         }

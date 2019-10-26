@@ -27,7 +27,8 @@ endfunc
 func InitKeyHooks($handler)
     local $keyHandler = DllCallbackRegister($handler, "long", "int;wparam;lparam")
     local $hMod = _WinAPI_GetModuleHandle(0)
-    $gHook = _WinAPI_SetWindowsHookEx($WH_KEYBOARD_LL, DllCallbackGetPtr($keyHandler), $hMod)
+    $gHook = _WinAPI_SetWindowsHookEx($WH_KEYBOARD_LL, _
+        DllCallbackGetPtr($keyHandler), $hMod)
 endfunc
 
 InitKeyHooks("_KeyHandler")

@@ -35,7 +35,8 @@ endfunc
 func SendArduino($hPort, $modifier, $key)
     local $command[3] = [0xDC, $modifier, $key]
 
-    _CommAPI_TransmitString($hPort, StringFromASCIIArray($command, 0, UBound($command), 1))
+    _CommAPI_TransmitString($hPort, _
+        StringFromASCIIArray($command, 0, UBound($command), 1))
 
     if @error then ShowError()
 endfunc

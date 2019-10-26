@@ -8,7 +8,8 @@ const $optNbPixel = 200
 const $posX = 700
 const $posY = 380
 
-$coords = FFBestSpot($sizeSearch, $minNbPixel, $optNbPixel, $posX, $posY, 0xA9E89C, 10)
+$coords = FFBestSpot($sizeSearch, $minNbPixel, $optNbPixel, _
+                     $posX, $posY, 0xA9E89C, 10)
 
 if not @error then
     MsgBox(0, "Coords", $coords[0] & ", " & $coords[1])

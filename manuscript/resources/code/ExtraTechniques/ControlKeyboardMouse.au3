@@ -39,7 +39,8 @@ func SendArduinoKeyboard($hPort, $modifier, $key)
         local $command[5] = [0xDC, 0x2, $modifier, $key, 0xFF]
     endif
 
-    _CommAPI_TransmitString($hPort, StringFromASCIIArray($command, 0, UBound($command), 1))
+    _CommAPI_TransmitString($hPort, _
+        StringFromASCIIArray($command, 0, UBound($command), 1))
 
     if @error then ShowError()
 endfunc
@@ -55,7 +56,8 @@ endfunc
 func SendArduinoMouse($hPort, $x, $y, $button)
     local $command[5] = [0xDC, 0x3, GetX($x), GetY($y), $button]
 
-    _CommAPI_TransmitString($hPort, StringFromASCIIArray($command, 0, UBound($command), 1))
+    _CommAPI_TransmitString($hPort, _
+        StringFromASCIIArray($command, 0, UBound($command), 1))
 
     if @error then ShowError()
 endfunc

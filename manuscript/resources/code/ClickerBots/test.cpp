@@ -16,8 +16,7 @@ int main()
     hDLL = LoadLibraryA("FastFind");
     if (hDLL != NULL)
     {
-        lpfnDllFunc1 = (LPFNDLLFUNC1)GetProcAddress(hDLL,
-            "FFVersion");
+        lpfnDllFunc1 = (LPFNDLLFUNC1)GetProcAddress(hDLL, "FFVersion");
         if (!lpfnDllFunc1)
         {
             // Обработка ошибки

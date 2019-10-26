@@ -26,4 +26,5 @@ DllStructSetData($tINPUTs, 1, $INPUT_KEYBOARD)
 DllStructSetData($tINPUTs, 3, $Key)
 DllStructSetData($tINPUTs, 4, $KEYEVENTF_UNICODE)
 
-DllCall('user32.dll', 'uint', 'SendInput', 'uint', $iINPUTs, 'ptr', $pINPUTs, 'int', $iInputSize)
+DllCall('user32.dll', 'uint', 'SendInput', _
+        'uint', $iINPUTs, 'ptr', $pINPUTs, 'int', $iInputSize)
