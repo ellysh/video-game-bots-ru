@@ -4,8 +4,8 @@
 
 Если у вас остались какие-то вопросы или возникли замечания по материалу книги, обязательно напишите о них мне на почту [petrsum@gmail.com](mailto:petrsum@gmail.com). Также вы можете задать свои вопросы в "Issues" одного из следующих GitHub репозиториев:
 
-* [https://github.com/ellysh/video-game-bots-ru](https://github.com/ellysh/video-game-bots-ru)
-* [https://github.com/Apress/practical-video-game-bots/issues](https://github.com/Apress/practical-video-game-bots/issues)
-* [https://github.com/ellysh/video-game-bots](https://github.com/ellysh/video-game-bots)
+* [https://github.com/ellysh/video-game-bots-ru](https://github.com/ellysh/video-game-bots-ru/issues)
+* [https://github.com/Apress/practical-video-game-bots](https://github.com/Apress/practical-video-game-bots/issues)
+* [https://github.com/ellysh/video-game-bots](https://github.com/ellysh/video-game-bots/issues)
 
 Большое вам спасибо за то, что вы прочитали "Боты для компьютерных игр".
