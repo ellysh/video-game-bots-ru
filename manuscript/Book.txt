@@ -32,6 +32,4 @@ mainmatter:
   ExtraTechniques/input-device-emulation.md
   ExtraTechniques/os-level-interception-data.md
 
-backmatter:
-
   finalwords.md
