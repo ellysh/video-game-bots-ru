@@ -102,7 +102,7 @@ Result of reading dword at 0x1e0000 address = 0xdeadbeef
 
 Обратите внимание на функции-обёртки `WriteDword` и `ReadDword` в листинге 3-2. Они скрывают несущественные детали и предоставляют простой интерфейс к WinAPI-функциям `WriteProcessMemory` и `ReadProcessMemory`. Их параметры представлены в таблице 3-4.
 
-{caption: "Таблица 3-4. Параметры функций `WriteProcessMemory` и `ReadProcessMemory`"}
+{caption: "Таблица 3-4. Параметры функций `WriteProcessMemory` и `ReadProcessMemory`", width: "100%", column-widths: "10%,20%,*"}
 | Номер параметра | Параметр | Описание |
 | --- | --- | --- |
 | 1 | `hProc` | Дескриптор целевого процесса, к памяти которого идёт обращение. |
@@ -231,7 +231,7 @@ WinAPI-функция `NtQueryInformationThread` предоставляет до
 
 Параметры функции `NtQueryInformationThread` приведены в таблице 3-5. 
 
-{caption: "Таблица 3-5. Параметры функции `NtQueryInformationThread`"}
+{caption: "Таблица 3-5. Параметры функции `NtQueryInformationThread`", width: "100%", {column-widths: "20%,*"}}
 | Параметр | Описание |
 | --- | --- |
 | `GetCurrentThread()` | Дескриптор целевого потока, TEB которого требуется прочитать. В примере используется дескриптор текущего потока. |
