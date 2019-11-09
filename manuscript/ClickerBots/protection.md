@@ -230,7 +230,7 @@ C:\Program Files (x86)\AutoHotkey\Compiler\Ahk2Exe.exe
 
 4. Нажмите кнопку "> Convert <". После окончания процесса компиляции вы увидите сообщение.
 
-{caption: "Иллюстрация 2-14. Окно компилятора AutoHotKey"}
+{caption: "Иллюстрация 2-14. Окно компилятора AutoHotKey", height: "50%"}
 ![Компилятор AutoHotKey](images/ClickerBots/ahk2exe.png)
 
 Попробуйте запустить полученный EXE-файл с именем `SimpleBot.exe`. Он ведёт себя точно так же, как и скрипт `SimpleBot.ahk`. Единственное отличие в том, что алгоритм защиты `ProcessScanProtection.au3` не может его обнаружить. Это происходит из-за того, что процесс бота теперь называется `SimpleBot.exe`, а не `AutoHotKey.exe`.
