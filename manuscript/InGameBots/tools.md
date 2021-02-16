@@ -6,7 +6,7 @@
 
 В этой главе мы будем использовать только язык C++. Для компиляции и работы с кодом рекомендую вам бесплатную IDE [Microsoft Visual Studio](https://visualstudio.microsoft.com/vs/express) вместо открытого набора инструментов MinGW. Проблема в том, что MinGW плохо интегрируется с некоторыми Windows библиотеками (например `dbghelp.dll`). Вы можете пробовать компилировать примеры этой главы с MinGW, но будьте готовы переключиться на Visual Studio IDE.
 
-Не забудьте обновить [Internet Explorer](https://support.microsoft.com/en-us/help/17621/internet-explorer-downloads) для того, чтобы использовать последнюю версию Visual Studio IDE.
+Чтобы запустить последнюю версию Visual Studio IDE, обновите браузер [Microsoft Edge](https://www.microsoft.com/en-us/edge).
 
 Для доступа к Windows Native API и линковки с системной библиотекой `ntdll.dll` вам понадобится [Windows SDK](https://docs.microsoft.com/en-us/previous-versions/visualstudio/windows-sdk/ms717358(v=vs.110)).
 
